@@ -32,4 +32,3 @@ class CustomLogger:
         except:
             # traceback.print_exc()
             print_verbose(f"Custom Logger Error - {traceback.format_exc()}")
-            pass

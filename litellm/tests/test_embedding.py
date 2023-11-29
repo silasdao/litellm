@@ -27,7 +27,7 @@ def test_cohere_embedding():
         response = embedding(
             model="embed-english-v2.0", input=["good morning from litellm", "this is another item"]
         )
-        print(f"response:", response)
+        print("response:", response)
     except Exception as e:
         pytest.fail(f"Error occurred: {e}")
 

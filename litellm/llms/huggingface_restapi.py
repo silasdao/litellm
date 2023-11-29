@@ -125,7 +125,7 @@ def completion(
                 if text != "":
                     past_user_inputs.append(text)
                 text = message["content"]
-            elif message["role"] == "assistant" or message["role"] == "system":
+            elif message["role"] in ["assistant", "system"]:
                 generated_responses.append(message["content"])
         data = {
             "inputs": {
@@ -154,13 +154,15 @@ def completion(
             data = {
                 "inputs": prompt,
                 "parameters": inference_params,
-                "stream": True if "stream" in inference_params and inference_params["stream"] == True else False,
+                "stream": "stream" in inference_params
+                and inference_params["stream"] == True,
             }
         else:
             data = {
                 "inputs": prompt,
                 "parameters": optional_params,
-                "stream": True if "stream" in optional_params and optional_params["stream"] == True else False,
+                "stream": "stream" in optional_params
+                and optional_params["stream"] == True,
             }
         input_text = prompt
     else:
@@ -183,7 +185,8 @@ def completion(
         data = {
             "inputs": prompt,
             "parameters": inference_params,
-            "stream": True if "stream" in optional_params and optional_params["stream"] == True else False,
+            "stream": "stream" in optional_params
+            and optional_params["stream"] == True,
         }
         input_text = prompt
     ## LOGGING
@@ -237,21 +240,22 @@ def completion(
             elif task == "text-generation-inference": 
                 model_response["choices"][0]["message"][
                     "content"
-                ] = completion_response[0]["generated_text"]   
-                ## GETTING LOGPROBS + FINISH REASON 
+                ] = completion_response[0]["generated_text"]
+                ## GETTING LOGPROBS + FINISH REASON
                 if "details" in completion_response[0] and "tokens" in completion_response[0]["details"]:
                     model_response.choices[0].finish_reason = completion_response[0]["details"]["finish_reason"]
-                    sum_logprob = 0
-                    for token in completion_response[0]["details"]["tokens"]:
-                        sum_logprob += token["logprob"]
+                    sum_logprob = sum(
+                        token["logprob"]
+                        for token in completion_response[0]["details"][
+                            "tokens"
+                        ]
+                    )
                     model_response["choices"][0]["message"]["logprobs"] = sum_logprob
                 if "best_of" in optional_params and optional_params["best_of"] > 1: 
                     if "details" in completion_response[0] and "best_of_sequences" in completion_response[0]["details"]:
                         choices_list = []
                         for idx, item in enumerate(completion_response[0]["details"]["best_of_sequences"]):
-                            sum_logprob = 0
-                            for token in item["tokens"]:
-                                sum_logprob += token["logprob"]
+                            sum_logprob = sum(token["logprob"] for token in item["tokens"])
                             message_obj = Message(content=item["generated_text"], logprobs=sum_logprob)
                             choice_obj = Choices(finish_reason=item["finish_reason"], index=idx+1, message=message_obj)
                             choices_list.append(choice_obj)
@@ -298,11 +302,11 @@ def embedding(
         embed_url = os.getenv("HUGGINGFACE_API_BASE", "")
     else:
         embed_url = f"https://api-inference.huggingface.co/models/{model}"
-    
+
     data = {
         "inputs": input
     }
-    
+
     ## LOGGING
     logging_obj.pre_call(
             input=input,
@@ -314,7 +318,7 @@ def embedding(
         embed_url, headers=headers, data=json.dumps(data)
     )
 
-  
+
     ## LOGGING
     logging_obj.post_call(
             input=input,
@@ -326,22 +330,18 @@ def embedding(
 
     embeddings = response.json()
 
-    output_data = []
-    for idx, embedding in enumerate(embeddings):
-        output_data.append(
-            {
-                "object": "embedding",
-                "index": idx,
-                "embedding": embedding[0][0] # flatten list returned from hf
-            }
-        )
+    output_data = [
+        {
+            "object": "embedding",
+            "index": idx,
+            "embedding": embedding[0][0],  # flatten list returned from hf
+        }
+        for idx, embedding in enumerate(embeddings)
+    ]
     model_response["object"] = "list"
     model_response["data"] = output_data
     model_response["model"] = model
-    input_tokens = 0
-    for text in input:
-        input_tokens+=len(encoding.encode(text)) 
-
+    input_tokens = sum(len(encoding.encode(text)) for text in input)
     model_response["usage"] = { 
         "prompt_tokens": input_tokens, 
         "total_tokens": input_tokens,

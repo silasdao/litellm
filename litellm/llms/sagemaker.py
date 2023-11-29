@@ -50,17 +50,9 @@ def completion(
     model = model
     prompt = ""
     for message in messages:
-        if "role" in message:
-            if message["role"] == "user":
-                prompt += (
-                    f"{message['content']}"
-                )
-            else:
-                prompt += (
-                    f"{message['content']}"
-                )
-        else:
-            prompt += f"{message['content']}"
+        prompt += (
+            f"{message['content']}"
+        )
     # pop streaming if it's in the optional params as 'stream' raises an error with sagemaker
     inference_params = deepcopy(optional_params)
     inference_params.pop("stream", None)
@@ -98,16 +90,15 @@ def completion(
             message=completion_response["error"],
             status_code=response.status_code,
         )
-    else:
-        try:
-            model_response["choices"][0]["message"]["content"] = completion_response[0]["generation"]
-        except:
-            raise SagemakerError(message=json.dumps(completion_response), status_code=response.status_code)
+    try:
+        model_response["choices"][0]["message"]["content"] = completion_response[0]["generation"]
+    except:
+        raise SagemakerError(message=json.dumps(completion_response), status_code=response.status_code)
 
     ## CALCULATING USAGE - baseten charges on time, not tokens - have some mapping of cost here. 
     prompt_tokens = len(
         encoding.encode(prompt)
-    ) 
+    )
     completion_tokens = len(
         encoding.encode(model_response["choices"][0]["message"]["content"])
     )

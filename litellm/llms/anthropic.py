@@ -31,13 +31,12 @@ def validate_environment(api_key):
         raise ValueError(
             "Missing Anthropic API Key - A call is being made to anthropic but no key is set either in the environment variables or via params"
         )
-    headers = {
+    return {
         "accept": "application/json",
         "anthropic-version": "2023-06-01",
         "content-type": "application/json",
         "x-api-key": api_key,
     }
-    return headers
 
 def completion(
     model: str,
@@ -54,21 +53,22 @@ def completion(
     headers = validate_environment(api_key)
     prompt = f"{AnthropicConstants.HUMAN_PROMPT.value}"
     for message in messages:
-        if "role" in message:
-            if message["role"] == "user":
-                prompt += (
-                    f"{AnthropicConstants.HUMAN_PROMPT.value}{message['content']}"
-                )
-            elif message["role"] == "system":
-                prompt += (
-                    f"{AnthropicConstants.HUMAN_PROMPT.value}<admin>{message['content']}</admin>"
-                )
-            else:
-                prompt += (
-                    f"{AnthropicConstants.AI_PROMPT.value}{message['content']}"
-                )
+        if (
+            "role" in message
+            and message["role"] == "user"
+            or "role" not in message
+        ):
+            prompt += (
+                f"{AnthropicConstants.HUMAN_PROMPT.value}{message['content']}"
+            )
+        elif message["role"] == "system":
+            prompt += (
+                f"{AnthropicConstants.HUMAN_PROMPT.value}<admin>{message['content']}</admin>"
+            )
         else:
-            prompt += f"{AnthropicConstants.HUMAN_PROMPT.value}{message['content']}"
+            prompt += (
+                f"{AnthropicConstants.AI_PROMPT.value}{message['content']}"
+            )
     prompt += f"{AnthropicConstants.AI_PROMPT.value}"
 
     ## Load Config
@@ -76,7 +76,7 @@ def completion(
         if k not in optional_params: 
             optional_params[k] = v
     if optional_params["max_tokens_to_sample"] != 256: # not default - print for testing 
-        print_verbose(f"LiteLLM.Anthropic: Max Tokens Set")
+        print_verbose("LiteLLM.Anthropic: Max Tokens Set")
     data = {
         "model": model,
         "prompt": prompt,
@@ -89,7 +89,7 @@ def completion(
         api_key=api_key,
         additional_args={"complete_input_dict": data},
     )
-    
+
     ## COMPLETION CALL
     if "stream" in optional_params and optional_params["stream"] == True:
         response = requests.post(
@@ -123,11 +123,10 @@ def completion(
                 message=str(completion_response["error"]),
                 status_code=response.status_code,
             )
-        else:
-            model_response["choices"][0]["message"]["content"] = completion_response[
-                "completion"
-            ]
-            model_response.choices[0].finish_reason = completion_response["stop_reason"]
+        model_response["choices"][0]["message"]["content"] = completion_response[
+            "completion"
+        ]
+        model_response.choices[0].finish_reason = completion_response["stop_reason"]
 
         ## CALCULATING USAGE
         prompt_tokens = len(

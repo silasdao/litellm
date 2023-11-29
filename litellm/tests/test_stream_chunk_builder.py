@@ -32,11 +32,7 @@ def test_stream_chunk_builder():
         stream=True,
     )
 
-    chunks = []
-
-    for chunk in response:
-        chunks.append(chunk)
-
+    chunks = list(response)
     try:
         rebuilt_response = stream_chunk_builder(chunks)
 

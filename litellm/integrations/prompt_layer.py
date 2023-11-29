@@ -62,4 +62,3 @@ class PromptLayerLogger:
 
         except:
             print_verbose(f"error: Prompt Layer Error - {traceback.format_exc()}")
-            pass

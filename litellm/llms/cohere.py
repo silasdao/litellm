@@ -57,44 +57,42 @@ def completion(
     )
     if "stream" in optional_params and optional_params["stream"] == True:
         return response.iter_lines()
-    else:
-        ## LOGGING
-        logging_obj.post_call(
-                input=prompt,
-                api_key=api_key,
-                original_response=response.text,
-                additional_args={"complete_input_dict": data},
-            )
-        print_verbose(f"raw model_response: {response.text}")
-        ## RESPONSE OBJECT
-        completion_response = response.json()
-        if "error" in completion_response:
-            raise CohereError(
-                message=completion_response["error"],
-                status_code=response.status_code,
-            )
-        else:
-            try:
-                model_response["choices"][0]["message"]["content"] = completion_response["generations"][0]["text"]
-            except:
-                raise CohereError(message=json.dumps(completion_response), status_code=response.status_code)
-
-        ## CALCULATING USAGE - baseten charges on time, not tokens - have some mapping of cost here. 
-        prompt_tokens = len(
-            encoding.encode(prompt)
-        ) 
-        completion_tokens = len(
-            encoding.encode(model_response["choices"][0]["message"]["content"])
+    ## LOGGING
+    logging_obj.post_call(
+            input=prompt,
+            api_key=api_key,
+            original_response=response.text,
+            additional_args={"complete_input_dict": data},
         )
+    print_verbose(f"raw model_response: {response.text}")
+    ## RESPONSE OBJECT
+    completion_response = response.json()
+    if "error" in completion_response:
+        raise CohereError(
+            message=completion_response["error"],
+            status_code=response.status_code,
+        )
+    try:
+        model_response["choices"][0]["message"]["content"] = completion_response["generations"][0]["text"]
+    except:
+        raise CohereError(message=json.dumps(completion_response), status_code=response.status_code)
 
-        model_response["created"] = time.time()
-        model_response["model"] = model
-        model_response["usage"] = {
-            "prompt_tokens": prompt_tokens,
-            "completion_tokens": completion_tokens,
-            "total_tokens": prompt_tokens + completion_tokens,
-        }
-        return model_response
+    ## CALCULATING USAGE - baseten charges on time, not tokens - have some mapping of cost here. 
+    prompt_tokens = len(
+        encoding.encode(prompt)
+    )
+    completion_tokens = len(
+        encoding.encode(model_response["choices"][0]["message"]["content"])
+    )
+
+    model_response["created"] = time.time()
+    model_response["model"] = model
+    model_response["usage"] = {
+        "prompt_tokens": prompt_tokens,
+        "completion_tokens": completion_tokens,
+        "total_tokens": prompt_tokens + completion_tokens,
+    }
+    return model_response
 
 def embedding(
     model: str,
@@ -143,22 +141,14 @@ def embedding(
         }
     """
     embeddings = response.json()['embeddings']
-    output_data = []
-    for idx, embedding in enumerate(embeddings):
-        output_data.append(
-            {
-                "object": "embedding",
-                "index": idx,
-                "embedding": embedding
-            }
-        )
+    output_data = [
+        {"object": "embedding", "index": idx, "embedding": embedding}
+        for idx, embedding in enumerate(embeddings)
+    ]
     model_response["object"] = "list"
     model_response["data"] = output_data
     model_response["model"] = model
-    input_tokens = 0
-    for text in input:
-        input_tokens+=len(encoding.encode(text)) 
-
+    input_tokens = sum(len(encoding.encode(text)) for text in input)
     model_response["usage"] = { 
         "prompt_tokens": input_tokens, 
         "total_tokens": input_tokens,

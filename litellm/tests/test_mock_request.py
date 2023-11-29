@@ -25,10 +25,10 @@ def test_streaming_mock_request():
         model = "gpt-3.5-turbo"
         messages = [{"role": "user", "content": "Hey, I'm a mock request"}]
         response = litellm.mock_completion(model=model, messages=messages, stream=True)
-        complete_response = "" 
-        for chunk in response: 
-            complete_response += chunk["choices"][0]["delta"]["content"]
-        if complete_response == "": 
+        complete_response = "".join(
+            chunk["choices"][0]["delta"]["content"] for chunk in response
+        )
+        if not complete_response: 
             raise Exception("Empty response received")
     except:
         traceback.print_exc()

@@ -141,7 +141,7 @@ class BerriSpendLogger:
                 f"BerriSpend Logging - Enters logging function for model {model}"
             )
 
-            url = f"https://berrispend.berri.ai/spend"
+            url = "https://berrispend.berri.ai/spend"
             headers = {"Content-Type": "application/json"}
 
             (
@@ -181,4 +181,3 @@ class BerriSpendLogger:
         except:
             # traceback.print_exc()
             print_verbose(f"BerriSpend Logging Error - {traceback.format_exc()}")
-            pass

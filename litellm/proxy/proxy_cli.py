@@ -54,19 +54,19 @@ def open_config():
 @click.command()
 @click.option('--port', default=8000, help='Port to bind the server to.')
 @click.option('--api_base', default=None, help='API base URL.')
-@click.option('--model', default=None, help='The model name to pass to litellm expects') 
+@click.option('--model', default=None, help='The model name to pass to litellm expects')
 @click.option('--deploy', is_flag=True, type=bool, help='Get a deployed proxy endpoint - api.litellm.ai')
-@click.option('--debug', is_flag=True, help='To debug the input') 
-@click.option('--temperature', default=None, type=float, help='Set temperature for the model') 
-@click.option('--max_tokens', default=None, help='Set max tokens for the model') 
-@click.option('--telemetry', default=True, type=bool, help='Helps us know if people are using this feature. Turn this off by doing `--telemetry False`') 
+@click.option('--debug', is_flag=True, help='To debug the input')
+@click.option('--temperature', default=None, type=float, help='Set temperature for the model')
+@click.option('--max_tokens', default=None, help='Set max tokens for the model')
+@click.option('--telemetry', default=True, type=bool, help='Helps us know if people are using this feature. Turn this off by doing `--telemetry False`')
 @click.option('--config', is_flag=True, help='Create and open .env file from .env.template')
 @click.option('--test', default=None, help='proxy chat completions url to make a test request to')
 @click.option('--local', is_flag=True, default=False, help='for local debugging')
 def run_server(port, api_base, model, deploy, debug, temperature, max_tokens, telemetry, config, test, local):
     if config:
         open_config()
-    
+
     if local:
         from proxy_server import app, initialize, deploy_proxy
         debug = True
@@ -82,7 +82,22 @@ def run_server(port, api_base, model, deploy, debug, temperature, max_tokens, te
 
         print(f"\033[32mLiteLLM: Test your URL using the following: \"litellm --test {url}\"\033[0m")
         return
-    if test != None:
+    if test is None:
+        load_config()
+        initialize(model, api_base, debug, temperature, max_tokens, telemetry)
+
+
+        try:
+            import uvicorn
+        except:
+            raise ImportError("Uvicorn needs to be imported. Run - `pip install uvicorn`")
+        print(f"\033[32mLiteLLM: Deployed Proxy Locally\033[0m\n")
+        print(f"\033[32mLiteLLM: Test your URL using the following: \"litellm --test http://0.0.0.0:{port}\" [In a new terminal tab]\033[0m\n")
+        print(f"\033[32mLiteLLM: Deploy your proxy using the following: \"litellm --model claude-instant-1 --deploy\" Get an https://api.litellm.ai/chat/completions endpoint \033[0m\n")
+
+        uvicorn.run(app, host='0.0.0.0', port=port)
+
+    else:
         click.echo('LiteLLM: Making a test ChatCompletions request to your proxy')
         import openai
         openai.api_base = test
@@ -97,20 +112,6 @@ def run_server(port, api_base, model, deploy, debug, temperature, max_tokens, te
         ])
         click.echo(f'LiteLLM: response from proxy {response}')
         return
-    else:
-        load_config()
-        initialize(model, api_base, debug, temperature, max_tokens, telemetry)
-
-
-        try:
-            import uvicorn
-        except:
-            raise ImportError("Uvicorn needs to be imported. Run - `pip install uvicorn`")
-        print(f"\033[32mLiteLLM: Deployed Proxy Locally\033[0m\n")
-        print(f"\033[32mLiteLLM: Test your URL using the following: \"litellm --test http://0.0.0.0:{port}\" [In a new terminal tab]\033[0m\n")
-        print(f"\033[32mLiteLLM: Deploy your proxy using the following: \"litellm --model claude-instant-1 --deploy\" Get an https://api.litellm.ai/chat/completions endpoint \033[0m\n")
-        
-        uvicorn.run(app, host='0.0.0.0', port=port)
 
 
 if __name__ == "__main__":

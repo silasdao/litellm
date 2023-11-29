@@ -116,14 +116,16 @@ def test_completion_with_litellm_call_id():
             model="gpt-3.5-turbo", messages=messages)
         print(response)
         if 'litellm_call_id' in response:
-            pytest.fail(f"Error occurred: litellm_call_id in response objects")
-        
+            pytest.fail("Error occurred: litellm_call_id in response objects")
+
         litellm.use_client = True
         response2 = completion(
             model="gpt-3.5-turbo", messages=messages)
-        
+
         if 'litellm_call_id' not in response2:
-            pytest.fail(f"Error occurred: litellm_call_id not in response object when use_client = True")
+            pytest.fail(
+                "Error occurred: litellm_call_id not in response object when use_client = True"
+            )
         # Add any assertions here to check the response
         print(response2)
     except Exception as e:
@@ -188,7 +190,7 @@ def test_get_hf_task_for_model():
     model = "roneneldan/TinyStories-3M"
     model_type = litellm.llms.huggingface_restapi.get_hf_task_for_model(model)
     print(f"model:{model}, model type: {model_type}")
-    assert(model_type == None)
+    assert model_type is None
 
 # test_get_hf_task_for_model()
 # litellm.set_verbose=False
@@ -917,7 +919,9 @@ def test_completion_bedrock_ai21():
 
 
 def test_completion_with_fallbacks():
-    print(f"RUNNING TEST COMPLETION WITH FALLBACKS -  test_completion_with_fallbacks")
+    print(
+        "RUNNING TEST COMPLETION WITH FALLBACKS -  test_completion_with_fallbacks"
+    )
     fallbacks = ["gpt-3.5-turbo", "gpt-3.5-turbo", "command-nightly"]
     try:
         response = completion(

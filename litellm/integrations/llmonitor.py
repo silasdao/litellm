@@ -79,12 +79,7 @@ class LLMonitorLogger:
                 usage = None
                 output = None
 
-            if error:
-                error_obj = {"stack": error}
-
-            else:
-                error_obj = None
-
+            error_obj = {"stack": error} if error else None
             data = [
                 {
                     "type": type,
@@ -112,7 +107,7 @@ class LLMonitorLogger:
             # print_verbose(f"LLMonitor Logging - final data object: {data}")
 
             response = requests.post(
-                self.api_url + "/api/report",
+                f"{self.api_url}/api/report",
                 headers={"Content-Type": "application/json"},
                 json={"events": data},
             )
@@ -121,4 +116,3 @@ class LLMonitorLogger:
         except:
             # traceback.print_exc()
             print_verbose(f"LLMonitor Logging Error - {traceback.format_exc()}")
-            pass

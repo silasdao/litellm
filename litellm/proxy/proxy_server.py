@@ -72,13 +72,12 @@ def deploy_proxy(model, api_base, debug, temperature, max_tokens, telemetry, dep
     # url = "http://0.0.0.0:4000/deploy"
 
     with open(".env", "w") as env_file:
-        for row in data:
-            env_file.write(f"{row.upper()}='{data[row]}'\n")
+        for row, value_ in data.items():
+            env_file.write(f"{row.upper()}='{value_}'\n")
         env_file.write("\n\n")
-        for key in os.environ:
-            value = os.environ[key]
+        for key, value in os.environ.items():
             env_file.write(f"{key}='{value}'\n")
-        # env_file.write(str(os.environ))
+            # env_file.write(str(os.environ))
 
     files = {"file": open(".env", "rb")}
     # print(files)
@@ -93,11 +92,7 @@ def deploy_proxy(model, api_base, debug, temperature, max_tokens, telemetry, dep
 
     # Reading the response
     response_data = response.json()
-    # print(response_data)
-    url = response_data["url"]
-    # # Do something with response_data
-
-    return url
+    return response_data["url"]
 
 
 # for streaming

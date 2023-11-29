@@ -8,21 +8,20 @@ class LiteDebugger:
     def __init__(self, email=None):
         self.api_url = "https://api.litellm.ai/debugger"
         self.validate_environment(email)
-        pass
 
     def validate_environment(self, email):
         try:
             self.user_email = (email or os.getenv("LITELLM_TOKEN") or os.getenv("LITELLM_EMAIL"))
-            if self.user_email == None: # if users are trying to use_client=True but token not set
+            if self.user_email is None: # if users are trying to use_client=True but token not set
                 raise ValueError("litellm.use_client = True but no token or email passed. Please set it in litellm.token")
-            self.dashboard_url = "https://admin.litellm.ai/" + self.user_email
+            self.dashboard_url = f"https://admin.litellm.ai/{self.user_email}"
             try:
                 print(
                     f"\033[92mHere's your LiteLLM Dashboard 👉 \033[94m\033[4m{self.dashboard_url}\033[0m"
                 )
             except:
                 print(f"Here's your LiteLLM Dashboard 👉 {self.dashboard_url}")
-            if self.user_email == None:
+            if self.user_email is None:
                 raise ValueError(
                     "[Non-Blocking Error] LiteLLMDebugger: Missing LITELLM_TOKEN. Set it in your environment. Eg.: os.environ['LITELLM_TOKEN']= <your_email>"
                 )
@@ -100,7 +99,6 @@ class LiteDebugger:
             print_verbose(
                 f"[Non-Blocking Error] LiteDebugger: Logging Error - {traceback.format_exc()}"
             )
-            pass
 
     def post_call_log_event(self, original_response, litellm_call_id, print_verbose, call_type, stream):
         print_verbose(f"LiteDebugger: Post-API Call Logging for call id {litellm_call_id}")
@@ -119,7 +117,7 @@ class LiteDebugger:
                     "litellm_call_id": litellm_call_id,
                     "user_email": self.user_email,
                 }
-            elif call_type == "completion" and stream:
+            elif call_type == "completion":
                 litellm_data_obj = {
                     "status": "received",
                     "additional_details": {"original_response": "Streamed response" if isinstance(original_response, types.GeneratorType) else original_response},
@@ -228,4 +226,3 @@ class LiteDebugger:
             print_verbose(
                 f"[Non-Blocking Error] LiteDebugger: Logging Error - {traceback.format_exc()}"
             )
-            pass

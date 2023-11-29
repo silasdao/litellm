@@ -15,12 +15,10 @@ def get_prompt(*args, **kwargs):
     # make this safe checks, it should not throw any exceptions
     if len(args) > 1:
         messages = args[1]
-        prompt = " ".join(message["content"] for message in messages)
-        return prompt
+        return " ".join(message["content"] for message in messages)
     if "messages" in kwargs:
         messages = kwargs["messages"]
-        prompt = " ".join(message["content"] for message in messages)
-        return prompt
+        return " ".join(message["content"] for message in messages)
     return None
 
 class RedisCache():
@@ -76,11 +74,7 @@ class InMemoryCache():
 
     def get_cache(self, key):
         #print("in get cache for inmem")
-        if key in self.cache_dict:
-            #print("got a cache hit")
-            return self.cache_dict[key]
-        #print("got a cache miss")
-        return None
+        return self.cache_dict[key] if key in self.cache_dict else None
 
 class Cache():
     def __init__(

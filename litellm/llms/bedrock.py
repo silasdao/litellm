@@ -31,40 +31,32 @@ def init_bedrock_client(region_name):
 
 
 def convert_messages_to_prompt(messages, provider):
+    prompt = ""
     # handle anthropic prompts using anthropic constants
     if provider == "anthropic":
-        prompt = ""
         for message in messages:
-            if "role" in message:
-                if message["role"] == "user":
-                    prompt += (
-                        f"{AnthropicConstants.HUMAN_PROMPT.value}{message['content']}"
-                    )
-                elif message["role"] == "system":
-                    prompt += (
-                        f"{AnthropicConstants.HUMAN_PROMPT.value}<admin>{message['content']}</admin>"
-                    )
-                else:
-                    prompt += (
-                        f"{AnthropicConstants.AI_PROMPT.value}{message['content']}"
-                    )
+            if (
+                "role" in message
+                and message["role"] == "user"
+                or "role" not in message
+            ):
+                prompt += (
+                    f"{AnthropicConstants.HUMAN_PROMPT.value}{message['content']}"
+                )
+            elif message["role"] == "system":
+                prompt += (
+                    f"{AnthropicConstants.HUMAN_PROMPT.value}<admin>{message['content']}</admin>"
+                )
             else:
-                prompt += f"{AnthropicConstants.HUMAN_PROMPT.value}{message['content']}"
+                prompt += (
+                    f"{AnthropicConstants.AI_PROMPT.value}{message['content']}"
+                )
         prompt += f"{AnthropicConstants.AI_PROMPT.value}"
     else:
-        prompt = ""
         for message in messages:
-            if "role" in message:
-                if message["role"] == "user":
-                    prompt += (
-                        f"{message['content']}"
-                    )
-                else:
-                    prompt += (
-                        f"{message['content']}"
-                    )
-            else:
-                prompt += f"{message['content']}"
+            prompt += (
+                f"{message['content']}"
+            )
     return prompt
 
 
@@ -165,11 +157,10 @@ def completion(
             message=outputText,
             status_code=response.status_code,
         )
-    else:
-        try:
-            model_response["choices"][0]["message"]["content"] = outputText
-        except:
-            raise BedrockError(message=json.dumps(outputText), status_code=response.status_code)
+    try:
+        model_response["choices"][0]["message"]["content"] = outputText
+    except:
+        raise BedrockError(message=json.dumps(outputText), status_code=response.status_code)
 
     ## CALCULATING USAGE - baseten charges on time, not tokens - have some mapping of cost here. 
     prompt_tokens = len(

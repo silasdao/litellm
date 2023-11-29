@@ -68,34 +68,32 @@ def completion(
     else:
         raise VLLMError(status_code=0, message="Need to pass in a model name to initialize vllm")
 
-    
-    ## COMPLETION CALL
+
     if "stream" in optional_params and optional_params["stream"] == True:
         return iter(outputs)
-    else:
-        ## LOGGING
-        logging_obj.post_call(
-            input=prompt,
-            api_key="",
-            original_response=outputs,
-            additional_args={"complete_input_dict": sampling_params},
-        )
-        print_verbose(f"raw model_response: {outputs}")
-        ## RESPONSE OBJECT
-        model_response["choices"][0]["message"]["content"] = outputs[0].outputs[0].text
+    ## LOGGING
+    logging_obj.post_call(
+        input=prompt,
+        api_key="",
+        original_response=outputs,
+        additional_args={"complete_input_dict": sampling_params},
+    )
+    print_verbose(f"raw model_response: {outputs}")
+    ## RESPONSE OBJECT
+    model_response["choices"][0]["message"]["content"] = outputs[0].outputs[0].text
 
-        ## CALCULATING USAGE
-        prompt_tokens = len(outputs[0].prompt_token_ids)  
-        completion_tokens = len(outputs[0].outputs[0].token_ids)  
+    ## CALCULATING USAGE
+    prompt_tokens = len(outputs[0].prompt_token_ids)
+    completion_tokens = len(outputs[0].outputs[0].token_ids)  
 
-        model_response["created"] = time.time()
-        model_response["model"] = model
-        model_response["usage"] = {
-            "prompt_tokens": prompt_tokens,
-            "completion_tokens": completion_tokens,
-            "total_tokens": prompt_tokens + completion_tokens,
-        }
-        return model_response
+    model_response["created"] = time.time()
+    model_response["model"] = model
+    model_response["usage"] = {
+        "prompt_tokens": prompt_tokens,
+        "completion_tokens": completion_tokens,
+        "total_tokens": prompt_tokens + completion_tokens,
+    }
+    return model_response
 
 def batch_completions(
     model: str,
@@ -133,12 +131,10 @@ def batch_completions(
         llm, SamplingParams = validate_environment(model=model, llm=llm)
     except Exception as e:
         error_str = str(e)
-        if "data parallel group is already initialized" in error_str:
-            pass 
-        else:
+        if "data parallel group is already initialized" not in error_str:
             raise VLLMError(status_code=0, message=error_str)
     sampling_params = SamplingParams(**optional_params)
-    prompts = [] 
+    prompts = []
     if model in custom_prompt_dict:
         # check if the model has a registered custom prompt
         model_prompt_details = custom_prompt_dict[model]
@@ -154,7 +150,7 @@ def batch_completions(
         for message in messages:
             prompt = prompt_factory(model=model, messages=message)
             prompts.append(prompt)
-    
+
     if llm:
         outputs = llm.generate(prompts, sampling_params)
     else:

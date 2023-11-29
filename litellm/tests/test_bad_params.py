@@ -29,7 +29,6 @@ def test_completion_with_empty_model():
         response = completion(model=model_val, messages=messages)
     except Exception as e:
         print(f"error occurred: {e}")
-        pass
 
 def test_completion_return_full_text_hf():
     try: 
@@ -37,9 +36,7 @@ def test_completion_return_full_text_hf():
         # check if input in response 
         assert "Hello, how are you?" not in response["choices"][0]["message"]["content"]
     except Exception as e: 
-        if "Function calling is not supported by this provider" in str(e): 
-            pass
-        else: 
+        if "Function calling is not supported by this provider" not in str(e):
             pytest.fail(f'An error occurred {e}')
 
 # test_completion_return_full_text_hf() 
@@ -49,9 +46,7 @@ def test_completion_invalid_param_cohere():
         response = completion(model="command-nightly", messages=messages, top_p=1)
         print(f"response: {response}")
     except Exception as e: 
-        if "Unsupported parameters passed: top_p" in str(e): 
-            pass
-        else: 
+        if "Unsupported parameters passed: top_p" not in str(e):
             pytest.fail(f'An error occurred {e}')
 
 test_completion_invalid_param_cohere()
@@ -60,9 +55,7 @@ def test_completion_function_call_cohere():
     try: 
         response = completion(model="command-nightly", messages=messages, function_call="TEST-FUNCTION")
     except Exception as e: 
-        if "Function calling is not supported by this provider" in str(e): 
-            pass
-        else: 
+        if "Function calling is not supported by this provider" not in str(e):
             pytest.fail(f'An error occurred {e}')
 
 def test_completion_function_call_openai(): 
@@ -101,7 +94,6 @@ def test_completion_with_no_provider():
         response = completion(model=model, messages=messages)
     except Exception as e:
         print(f"error occurred: {e}")
-        pass
 
 # test_completion_with_no_provider()
 # # bad key

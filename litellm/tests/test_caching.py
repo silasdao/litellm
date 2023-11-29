@@ -36,7 +36,7 @@ def test_gpt_cache():
         cache_key = last_content_without_prompt_val + data["model"]
         print("cache_key", cache_key)
         return cache_key
-        
+
 
     cache.init(pre_func=pre_cache_func)
     cache.set_openai_key()
@@ -49,13 +49,13 @@ def test_gpt_cache():
     if response1["choices"] != response2["choices"]: # same models should cache 
         print(f"response1: {response1}")
         print(f"response2: {response2}")
-        pytest.fail(f"Error occurred:")
+        pytest.fail("Error occurred:")
 
     if response3["choices"] == response2["choices"]: # different models, don't cache 
         # if models are different, it should not return cached response
         print(f"response2: {response2}")
         print(f"response3: {response3}")
-        pytest.fail(f"Error occurred:")
+        pytest.fail("Error occurred:")
 
 
 # test_gpt_cache()
@@ -98,11 +98,11 @@ def test_caching_with_models_v2():
         # if models are different, it should not return cached response
         print(f"response2: {response2}")
         print(f"response3: {response3}")
-        pytest.fail(f"Error occurred:")
+        pytest.fail("Error occurred:")
     if response1['choices'][0]['message']['content'] != response2['choices'][0]['message']['content']:
         print(f"response1: {response1}")
         print(f"response2: {response2}")
-        pytest.fail(f"Error occurred:")
+        pytest.fail("Error occurred:")
 # test_caching_with_models_v2()
 
 embedding_large_text = """
@@ -221,11 +221,11 @@ def test_redis_cache_completion():
 
     def set_cache(key, value):
         local_cache[key] = value
-    
+
     def get_cache(key):
         if key in local_cache:
             return local_cache[key]
-    
+
     litellm.cache.cache.set_cache = set_cache
     litellm.cache.cache.get_cache = get_cache
 
@@ -241,11 +241,11 @@ def test_redis_cache_completion():
         # if models are different, it should not return cached response
         print(f"response2: {response2}")
         print(f"response3: {response3}")
-        pytest.fail(f"Error occurred:")
+        pytest.fail("Error occurred:")
     if response1['choices'][0]['message']['content'] != response2['choices'][0]['message']['content']: # 1 and 2 should be the same
         print(f"response1: {response1}")
         print(f"response2: {response2}")
-        pytest.fail(f"Error occurred:")
+        pytest.fail("Error occurred:")
 
 # test_redis_cache_completion()
 
@@ -265,11 +265,11 @@ def test_custom_redis_cache_with_key():
 
     def set_cache(key, value):
         local_cache[key] = value
-    
+
     def get_cache(key):
         if key in local_cache:
             return local_cache[key]
-    
+
     litellm.cache.cache.set_cache = set_cache
     litellm.cache.cache.get_cache = get_cache
 
@@ -278,13 +278,13 @@ def test_custom_redis_cache_with_key():
     response1 = completion(model="gpt-3.5-turbo", messages=messages, temperature=1, caching=True)
     response2 = completion(model="gpt-3.5-turbo", messages=messages, temperature=1, caching=True)
     response3 = completion(model="gpt-3.5-turbo", messages=messages, temperature=1, caching=False)
-    
+
     print(f"response1: {response1}")
     print(f"response2: {response2}")
     print(f"response3: {response3}")
 
     if response3['choices'][0]['message']['content'] == response2['choices'][0]['message']['content']:
-        pytest.fail(f"Error occurred:")        
+        pytest.fail("Error occurred:")        
 
 # test_custom_redis_cache_with_key()
 
@@ -301,7 +301,7 @@ def test_hosted_cache():
     if response1['choices'][0]['message']['content'] != response2['choices'][0]['message']['content']: # 1 and 2 should be the same
         print(f"response1: {response1}")
         print(f"response2: {response2}")
-        pytest.fail(f"Hosted cache: Response2 is not cached and the same as response 1")
+        pytest.fail("Hosted cache: Response2 is not cached and the same as response 1")
 
 # test_hosted_cache()
 

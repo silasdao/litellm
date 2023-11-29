@@ -174,4 +174,3 @@ class AISpendLogger:
         except:
             # traceback.print_exc()
             print_verbose(f"AISpend Logging Error - {traceback.format_exc()}")
-            pass

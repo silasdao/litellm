@@ -26,7 +26,6 @@ def start_prediction(version_id, input_data, api_token, logging_obj):
         "input": input_data,
     }
 
-        ## LOGGING
     logging_obj.pre_call(
             input=input_data["prompt"],
             api_key="",
@@ -34,11 +33,10 @@ def start_prediction(version_id, input_data, api_token, logging_obj):
     )
 
     response = requests.post(f"{base_url}/predictions", json=initial_prediction_data, headers=headers)
-    if response.status_code == 201:
-        response_data = response.json()
-        return response_data.get("urls", {}).get("get")
-    else:
+    if response.status_code != 201:
         raise ReplicateError(response.status_code, f"Failed to start prediction {response.text}")
+    response_data = response.json()
+    return response_data.get("urls", {}).get("get")
 
 # Function to handle prediction response (non-streaming)
 def handle_prediction_response(prediction_url, api_token, print_verbose):
@@ -50,7 +48,7 @@ def handle_prediction_response(prediction_url, api_token, print_verbose):
 
     status = ""
     logs = ""
-    while True and (status not in ["succeeded", "failed", "canceled"]):
+    while status not in ["succeeded", "failed", "canceled"]:
         print_verbose("making request")
         time.sleep(0.5)
         response = requests.get(prediction_url, headers=headers)
@@ -75,7 +73,7 @@ def handle_prediction_response_streaming(prediction_url, api_token, print_verbos
         "Content-Type": "application/json"
     }
     status = ""
-    while True and (status not in ["succeeded", "failed", "canceled"]):
+    while status not in ["succeeded", "failed", "canceled"]:
         time.sleep(0.5) # prevent being rate limited by replicate
         response = requests.get(prediction_url, headers=headers)
         if response.status_code == 200:
@@ -110,9 +108,9 @@ def completion(
 ):
     # Start a prediction and get the prediction URL
     version_id = model_to_version_id(model)
+    prompt = ""
     if "meta/llama-2-13b-chat" in model: 
         system_prompt = ""
-        prompt = "" 
         for message in messages: 
             if message["role"] == "system":
                 system_prompt = message["content"]
@@ -124,8 +122,6 @@ def completion(
             **optional_params
         }
     else:
-        # Convert messages to prompt
-        prompt = ""
         for message in messages:
             prompt += message["content"]
 
@@ -163,14 +159,14 @@ def completion(
 
         if len(result) == 0: # edge case, where result from replicate is empty
             result = " "
-        
+
         ## Building RESPONSE OBJECT
         model_response["choices"][0]["message"]["content"] = result
 
         # Calculate usage
         prompt_tokens = len(encoding.encode(prompt))
         completion_tokens = len(encoding.encode(model_response["choices"][0]["message"]["content"]))
-        model_response["model"] = "replicate/" + model
+        model_response["model"] = f"replicate/{model}"
         model_response["usage"] = {
             "prompt_tokens": prompt_tokens,
             "completion_tokens": completion_tokens,

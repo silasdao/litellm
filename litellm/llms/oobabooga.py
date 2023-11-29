@@ -58,8 +58,8 @@ def completion(
         )
     else:
         prompt = prompt_factory(model=model, messages=messages)
-    
-    completion_url = completion_url + "/api/v1/generate"
+
+    completion_url = f"{completion_url}/api/v1/generate"
     data = {
         "prompt": prompt,
         **optional_params,
@@ -76,47 +76,45 @@ def completion(
     )
     if "stream" in optional_params and optional_params["stream"] == True:
         return response.iter_lines()
-    else:
-        ## LOGGING
-        logging_obj.post_call(
-                input=prompt,
-                api_key=api_key,
-                original_response=response.text,
-                additional_args={"complete_input_dict": data},
-            )
-        print_verbose(f"raw model_response: {response.text}")
-        ## RESPONSE OBJECT
-        try:
-            completion_response = response.json()
-        except:
-            raise OobaboogaError(message=response.text, status_code=response.status_code)
-        if "error" in completion_response:
-            raise OobaboogaError(
-                message=completion_response["error"],
-                status_code=response.status_code,
-            )
-        else:
-            try:
-                model_response["choices"][0]["message"]["content"] = completion_response['results'][0]['text']
-            except:
-                raise OobaboogaError(message=json.dumps(completion_response), status_code=response.status_code)
-
-        ## CALCULATING USAGE
-        prompt_tokens = len(
-            encoding.encode(prompt)
-        ) 
-        completion_tokens = len(
-            encoding.encode(model_response["choices"][0]["message"]["content"])
+    ## LOGGING
+    logging_obj.post_call(
+            input=prompt,
+            api_key=api_key,
+            original_response=response.text,
+            additional_args={"complete_input_dict": data},
         )
+    print_verbose(f"raw model_response: {response.text}")
+    ## RESPONSE OBJECT
+    try:
+        completion_response = response.json()
+    except:
+        raise OobaboogaError(message=response.text, status_code=response.status_code)
+    if "error" in completion_response:
+        raise OobaboogaError(
+            message=completion_response["error"],
+            status_code=response.status_code,
+        )
+    try:
+        model_response["choices"][0]["message"]["content"] = completion_response['results'][0]['text']
+    except:
+        raise OobaboogaError(message=json.dumps(completion_response), status_code=response.status_code)
 
-        model_response["created"] = time.time()
-        model_response["model"] = model
-        model_response["usage"] = {
-            "prompt_tokens": prompt_tokens,
-            "completion_tokens": completion_tokens,
-            "total_tokens": prompt_tokens + completion_tokens,
-        }
-        return model_response
+    ## CALCULATING USAGE
+    prompt_tokens = len(
+        encoding.encode(prompt)
+    )
+    completion_tokens = len(
+        encoding.encode(model_response["choices"][0]["message"]["content"])
+    )
+
+    model_response["created"] = time.time()
+    model_response["model"] = model
+    model_response["usage"] = {
+        "prompt_tokens": prompt_tokens,
+        "completion_tokens": completion_tokens,
+        "total_tokens": prompt_tokens + completion_tokens,
+    }
+    return model_response
 
 def embedding():
     # logic for parsing in - calling - parsing out model embedding calls

@@ -51,17 +51,15 @@ try:
     sys.stdout = old_stdout
     output = new_stdout.getvalue().strip()
 
-    if "Logging Details Pre-API Call" not in output:
-        raise Exception("Required log message not found!")
-    elif "Logging Details Post-API Call" not in output:
-        raise Exception("Required log message not found!")
-    elif "Logging Details LiteLLM-Success Call" not in output:
+    if (
+        "Logging Details Pre-API Call" not in output
+        or "Logging Details Post-API Call" not in output
+        or "Logging Details LiteLLM-Success Call" not in output
+    ):
         raise Exception("Required log message not found!")
     score += 1
 except Exception as e:
     pytest.fail(f"Error occurred: {e}")
-    pass
-
 ## test on non-openai completion call
 try:
     # Redirect stdout
@@ -69,22 +67,20 @@ try:
     sys.stdout = new_stdout = io.StringIO()
 
     response = completion(model="claude-instant-1", messages=messages)
-    
+
     # Restore stdout
     sys.stdout = old_stdout
     output = new_stdout.getvalue().strip()
 
-    if "Logging Details Pre-API Call" not in output:
-        raise Exception("Required log message not found!")
-    elif "Logging Details Post-API Call" not in output:
-        raise Exception("Required log message not found!")
-    elif "Logging Details LiteLLM-Success Call" not in output:
+    if (
+        "Logging Details Pre-API Call" not in output
+        or "Logging Details Post-API Call" not in output
+        or "Logging Details LiteLLM-Success Call" not in output
+    ):
         raise Exception("Required log message not found!")
     score += 1
 except Exception as e:
     pytest.fail(f"Error occurred: {e}")
-    pass
-
 # streaming completion
 ## test on openai completion call
 try:
@@ -98,17 +94,15 @@ try:
     sys.stdout = old_stdout
     output = new_stdout.getvalue().strip()
 
-    if "Logging Details Pre-API Call" not in output:
-        raise Exception("Required log message not found!")
-    elif "Logging Details Post-API Call" not in output:
-        raise Exception("Required log message not found!")
-    elif "Logging Details LiteLLM-Success Call" not in output:
+    if (
+        "Logging Details Pre-API Call" not in output
+        or "Logging Details Post-API Call" not in output
+        or "Logging Details LiteLLM-Success Call" not in output
+    ):
         raise Exception("Required log message not found!")
     score += 1
 except Exception as e:
     pytest.fail(f"Error occurred: {e}")
-    pass
-
 ## test on non-openai completion call
 try:
     # Redirect stdout
@@ -116,22 +110,20 @@ try:
     sys.stdout = new_stdout = io.StringIO()
 
     response = completion(model="claude-instant-1", messages=messages)
-    
+
     # Restore stdout
     sys.stdout = old_stdout
     output = new_stdout.getvalue().strip()
 
-    if "Logging Details Pre-API Call" not in output:
-        raise Exception("Required log message not found!")
-    elif "Logging Details Post-API Call" not in output:
-        raise Exception("Required log message not found!")
-    elif "Logging Details LiteLLM-Success Call" not in output:
+    if (
+        "Logging Details Pre-API Call" not in output
+        or "Logging Details Post-API Call" not in output
+        or "Logging Details LiteLLM-Success Call" not in output
+    ):
         raise Exception("Required log message not found!")
     score += 1
 except Exception as e:
     pytest.fail(f"Error occurred: {e}")
-    pass
-
 # embedding
 
 try:
@@ -145,11 +137,11 @@ try:
     sys.stdout = old_stdout
     output = new_stdout.getvalue().strip()
 
-    if "Logging Details Pre-API Call" not in output:
-        raise Exception("Required log message not found!")
-    elif "Logging Details Post-API Call" not in output:
-        raise Exception("Required log message not found!")
-    elif "Logging Details LiteLLM-Success Call" not in output:
+    if (
+        "Logging Details Pre-API Call" not in output
+        or "Logging Details Post-API Call" not in output
+        or "Logging Details LiteLLM-Success Call" not in output
+    ):
         raise Exception("Required log message not found!")
 except Exception as e:
     pytest.fail(f"Error occurred: {e}")

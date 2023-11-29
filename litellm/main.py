@@ -94,16 +94,7 @@ async def acompletion(*args, **kwargs):
 
     # Call the synchronous function using run_in_executor
     response =  await loop.run_in_executor(None, func_with_context)
-    if kwargs.get("stream", False): # return an async generator
-        # do not change this
-        # for stream = True, always return an async generator
-        # See OpenAI acreate https://github.com/openai/openai-python/blob/5d50e9e3b39540af782ca24e65c290343d86e1a9/openai/api_resources/abstract/engine_api_resource.py#L193
-        return(
-            line
-            async for line in response
-        )
-    else:
-        return response
+    return iter(response) if kwargs.get("stream", False) else response
 
 def mock_completion(model: str, messages: List, stream: Optional[bool] = False, mock_response: str = "This is a mock request", **kwargs):
     """
@@ -131,10 +122,9 @@ def mock_completion(model: str, messages: List, stream: Optional[bool] = False, 
     try:
         model_response = ModelResponse(stream=stream)
         if stream is True:
-            # don't try to access stream object,
-            response = mock_completion_streaming_obj(model_response, mock_response=mock_response, model=model)
-            return response
-        
+            return mock_completion_streaming_obj(
+                model_response, mock_response=mock_response, model=model
+            )
         model_response["choices"][0]["message"]["content"] = mock_response
         model_response["created"] = time.time()
         model_response["model"] = model

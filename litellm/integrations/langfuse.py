@@ -57,4 +57,3 @@ class LangFuseLogger:
         except:
             # traceback.print_exc()
             print_verbose(f"Langfuse Layer Error - {traceback.format_exc()}")
-            pass

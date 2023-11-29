@@ -15,9 +15,7 @@ import traceback
 
 def testing_batch_completion(*args, **kwargs):
     try:
-        batch_models = (
-            args[0] if len(args) > 0 else kwargs.pop("models")
-        )  ## expected input format- ["gpt-3.5-turbo", {"model": "qvv0xeq", "custom_llm_provider"="baseten"}...]
+        batch_models = args[0] if args else kwargs.pop("models")
         batch_messages = args[1] if len(args) > 1 else kwargs.pop("messages")
         results = []
         completions = []
@@ -27,7 +25,7 @@ def testing_batch_completion(*args, **kwargs):
             for model in batch_models:
                 kwargs_modified = dict(kwargs)
                 args_modified = list(args)
-                if len(args) > 0:
+                if args:
                     args_modified[0] = model["model"]
                 else:
                     kwargs_modified["model"] = (
@@ -48,14 +46,11 @@ def testing_batch_completion(*args, **kwargs):
                 for message_list in batch_messages:
                     if len(args) > 1:
                         args_modified[1] = message_list
-                        future = executor.submit(
-                            litellm.completion, *args_modified, **kwargs_modified
-                        )
                     else:
                         kwargs_modified["messages"] = message_list
-                        future = executor.submit(
-                            litellm.completion, *args_modified, **kwargs_modified
-                        )
+                    future = executor.submit(
+                        litellm.completion, *args_modified, **kwargs_modified
+                    )
                     completions.append((future, message_list))
 
         # Retrieve the results and calculate elapsed time for each completion call
@@ -111,9 +106,7 @@ def duration_test_model(original_function):
 
 @duration_test_model
 def load_test_model(models: list, prompt: str = "", num_calls: int = 0):
-    test_calls = 100
-    if num_calls:
-        test_calls = num_calls
+    test_calls = num_calls if num_calls else 100
     input_prompt = prompt if prompt else "Hey, how's it going?"
     messages = (
         [{"role": "user", "content": prompt}]

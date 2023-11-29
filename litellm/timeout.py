@@ -74,9 +74,7 @@ def timeout(timeout_duration: float = 0.0, exception_to_raise=Timeout):
                     f"A timeout error occurred. The function call took longer than {local_timeout_duration} second(s)."
                 )
 
-        if iscoroutinefunction(func):
-            return async_wrapper
-        return wrapper
+        return async_wrapper if iscoroutinefunction(func) else wrapper
 
     return decorator
 

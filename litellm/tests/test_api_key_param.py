@@ -34,7 +34,6 @@ try:
     print(f"response: {response}")
 except:
     print(f"error occurred: {traceback.format_exc()}")
-    pass
 os.environ["ANTHROPIC_API_KEY"] = temp_key
 
 
@@ -49,5 +48,4 @@ try:
     print(f"response: {response}")
 except:
     print(f"error occurred: {traceback.format_exc()}")
-    pass
 os.environ["ANTHROPIC_API_KEY"] = temp_key

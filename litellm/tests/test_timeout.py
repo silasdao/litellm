@@ -24,8 +24,6 @@ try:
     stop_after_10_s(force_timeout=1)
 except Exception as e:
     print(e)
-    pass
-
 end_time = time.time()
 
 print(f"total time: {end_time-start_time}")

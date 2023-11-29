@@ -41,18 +41,13 @@ def completion(
     model = model
     prompt = ""
     for message in messages:
-        if "role" in message:
-            if message["role"] == "user":
-                prompt += f"{message['content']}"
-            else:
-                prompt += f"{message['content']}"
-        else:
-            prompt += f"{message['content']}"
+        prompt += f"{message['content']}"
     data = {
         "inputs": prompt,
         "prompt": prompt,
         "parameters": optional_params,
-        "stream": True if "stream" in optional_params and optional_params["stream"] == True else False
+        "stream": "stream" in optional_params
+        and optional_params["stream"] == True,
     }
 
     ## LOGGING
@@ -66,82 +61,82 @@ def completion(
         completion_url_fragment_1 + model + completion_url_fragment_2,
         headers=headers,
         data=json.dumps(data),
-        stream=True if "stream" in optional_params and optional_params["stream"] == True else False
+        stream="stream" in optional_params
+        and optional_params["stream"] == True,
     )
     if 'text/event-stream' in response.headers['Content-Type'] or ("stream" in optional_params and optional_params["stream"] == True):
         return response.iter_lines()
-    else:
-        ## LOGGING
-        logging_obj.post_call(
-                input=prompt,
-                api_key=api_key,
-                original_response=response.text,
-                additional_args={"complete_input_dict": data},
+    ## LOGGING
+    logging_obj.post_call(
+            input=prompt,
+            api_key=api_key,
+            original_response=response.text,
+            additional_args={"complete_input_dict": data},
+        )
+    print_verbose(f"raw model_response: {response.text}")
+    ## RESPONSE OBJECT
+    completion_response = response.json()
+    if "error" in completion_response:
+        raise BasetenError(
+            message=completion_response["error"],
+            status_code=response.status_code,
+        )
+    if "model_output" in completion_response:
+        if (
+            isinstance(completion_response["model_output"], dict)
+            and "data" in completion_response["model_output"]
+            and isinstance(
+                completion_response["model_output"]["data"], list
             )
-        print_verbose(f"raw model_response: {response.text}")
-        ## RESPONSE OBJECT
-        completion_response = response.json()
-        if "error" in completion_response:
+        ):
+            model_response["choices"][0]["message"][
+                "content"
+            ] = completion_response["model_output"]["data"][0]
+        elif isinstance(completion_response["model_output"], str):
+            model_response["choices"][0]["message"][
+                "content"
+            ] = completion_response["model_output"]
+    elif "completion" in completion_response and isinstance(
+        completion_response["completion"], str
+    ):
+        model_response["choices"][0]["message"][
+            "content"
+        ] = completion_response["completion"]
+    elif isinstance(completion_response, list) and len(completion_response) > 0:
+        if "generated_text" not in completion_response:
             raise BasetenError(
-                message=completion_response["error"],
-                status_code=response.status_code,
+                message=f"Unable to parse response. Original response: {response.text}",
+                status_code=response.status_code
             )
-        else:
-            if "model_output" in completion_response:
-                if (
-                    isinstance(completion_response["model_output"], dict)
-                    and "data" in completion_response["model_output"]
-                    and isinstance(
-                        completion_response["model_output"]["data"], list
-                    )
-                ):
-                    model_response["choices"][0]["message"][
-                        "content"
-                    ] = completion_response["model_output"]["data"][0]
-                elif isinstance(completion_response["model_output"], str):
-                    model_response["choices"][0]["message"][
-                        "content"
-                    ] = completion_response["model_output"]
-            elif "completion" in completion_response and isinstance(
-                completion_response["completion"], str
-            ):
-                model_response["choices"][0]["message"][
-                    "content"
-                ] = completion_response["completion"]
-            elif isinstance(completion_response, list) and len(completion_response) > 0:
-                if "generated_text" not in completion_response:
-                    raise BasetenError(
-                        message=f"Unable to parse response. Original response: {response.text}",
-                        status_code=response.status_code
-                    )
-                model_response["choices"][0]["message"]["content"] = completion_response[0]["generated_text"]
+        model_response["choices"][0]["message"]["content"] = completion_response[0]["generated_text"]
                 ## GETTING LOGPROBS 
-                if "details" in completion_response[0] and "tokens" in completion_response[0]["details"]:
-                    model_response.choices[0].finish_reason = completion_response[0]["details"]["finish_reason"]
-                    sum_logprob = 0
-                    for token in completion_response[0]["details"]["tokens"]:
-                        sum_logprob += token["logprob"]
-                    model_response["choices"][0]["message"]["logprobs"] = sum_logprob
-            else:
-                raise BasetenError(
-                    message=f"Unable to parse response. Original response: {response.text}",
-                    status_code=response.status_code
-                )
-
-        ## CALCULATING USAGE - baseten charges on time, not tokens - have some mapping of cost here.
-        prompt_tokens = len(encoding.encode(prompt))
-        completion_tokens = len(
-            encoding.encode(model_response["choices"][0]["message"]["content"])
+        if "details" in completion_response[0] and "tokens" in completion_response[0]["details"]:
+            model_response.choices[0].finish_reason = completion_response[0]["details"]["finish_reason"]
+            sum_logprob = sum(
+                token["logprob"]
+                for token in completion_response[0]["details"]["tokens"]
+            )
+            model_response["choices"][0]["message"]["logprobs"] = sum_logprob
+    else:
+        raise BasetenError(
+            message=f"Unable to parse response. Original response: {response.text}",
+            status_code=response.status_code
         )
 
-        model_response["created"] = time.time()
-        model_response["model"] = model
-        model_response["usage"] = {
-            "prompt_tokens": prompt_tokens,
-            "completion_tokens": completion_tokens,
-            "total_tokens": prompt_tokens + completion_tokens,
-        }
-        return model_response
+    ## CALCULATING USAGE - baseten charges on time, not tokens - have some mapping of cost here.
+    prompt_tokens = len(encoding.encode(prompt))
+    completion_tokens = len(
+        encoding.encode(model_response["choices"][0]["message"]["content"])
+    )
+
+    model_response["created"] = time.time()
+    model_response["model"] = model
+    model_response["usage"] = {
+        "prompt_tokens": prompt_tokens,
+        "completion_tokens": completion_tokens,
+        "total_tokens": prompt_tokens + completion_tokens,
+    }
+    return model_response
 
 def embedding():
     # logic for parsing in - calling - parsing out model embedding calls

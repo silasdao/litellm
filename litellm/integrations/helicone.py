@@ -21,13 +21,14 @@ class HeliconeLogger:
 
         prompt = f"{HUMAN_PROMPT}"
         for message in messages:
-            if "role" in message:
-                if message["role"] == "user":
-                    prompt += f"{HUMAN_PROMPT}{message['content']}"
-                else:
-                    prompt += f"{AI_PROMPT}{message['content']}"
-            else:
+            if (
+                "role" in message
+                and message["role"] == "user"
+                or "role" not in message
+            ):
                 prompt += f"{HUMAN_PROMPT}{message['content']}"
+            else:
+                prompt += f"{AI_PROMPT}{message['content']}"
         prompt += f"{AI_PROMPT}"
         claude_provider_request = {"model": model, "prompt": prompt}
 
@@ -111,4 +112,3 @@ class HeliconeLogger:
         except:
             # traceback.print_exc()
             print_verbose(f"Helicone Logging Error - {traceback.format_exc()}")
-            pass

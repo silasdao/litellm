@@ -20,12 +20,11 @@ def validate_environment(api_key):
         raise ValueError(
             "Missing TogetherAI API Key - A call is being made to together_ai but no key is set either in the environment variables or via params"
         )
-    headers = {
+    return {
         "accept": "application/json",
         "content-type": "application/json",
-        "Authorization": "Bearer " + api_key,
+        "Authorization": f"Bearer {api_key}",
     }
-    return headers
 
 def completion(
     model: str,

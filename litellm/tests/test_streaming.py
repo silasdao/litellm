@@ -208,7 +208,7 @@ def test_completion_cohere_stream():
         for idx, chunk in enumerate(response):
             chunk, finished = streaming_format_tests(idx, chunk)
             has_finish_reason = finished
-            if finished:
+            if has_finish_reason:
                 break
             complete_response += chunk
         if has_finish_reason is False:
@@ -240,7 +240,7 @@ def test_completion_cohere_stream_bad_key():
         for idx, chunk in enumerate(response):
             chunk, finished = streaming_format_tests(idx, chunk)
             has_finish_reason = finished
-            if finished:
+            if has_finish_reason:
                 break
             complete_response += chunk
         if has_finish_reason is False:
@@ -606,7 +606,7 @@ def test_completion_replicate_stream():
         for idx, chunk in enumerate(response):
             chunk, finished = streaming_format_tests(idx, chunk)
             has_finish_reason = finished
-            if finished:
+            if has_finish_reason:
                 break
             complete_response += chunk
         if has_finish_reason is False:
@@ -697,7 +697,7 @@ def test_completion_sagemaker_stream():
         for idx, chunk in enumerate(response):
             chunk, finished = streaming_format_tests(idx, chunk)
             has_finish_reason = finished
-            if finished:
+            if has_finish_reason:
                 break
             complete_response += chunk
         if has_finish_reason is False:
@@ -743,7 +743,7 @@ def ai21_completion_call():
             chunk, finished = streaming_format_tests(idx, chunk)
             has_finished = finished
             complete_response += chunk
-            if finished:
+            if has_finished:
                 break
         if has_finished is False:
             raise Exception("finished reason missing from final chunk")
@@ -849,7 +849,6 @@ def test_openai_chat_completion_call():
         print(f"complete response: {complete_response}")
     except:
         print(f"error occurred: {traceback.format_exc()}")
-        pass
 
 # test_openai_chat_completion_call()
 
@@ -869,7 +868,7 @@ def test_together_ai_completion_call_starcoder():
         for idx, chunk in enumerate(response):
             chunk, finished = streaming_format_tests(idx, chunk)
             has_finish_reason = finished
-            if finished:
+            if has_finish_reason:
                 break
             complete_response += chunk
         if has_finish_reason is False:
@@ -879,7 +878,6 @@ def test_together_ai_completion_call_starcoder():
         print(f"complete response: {complete_response}")
     except:
         print(f"error occurred: {traceback.format_exc()}")
-        pass
 
 # test_together_ai_completion_call_starcoder() 
 
@@ -898,7 +896,7 @@ def test_together_ai_completion_call_starcoder_bad_key():
         for idx, chunk in enumerate(response):
             chunk, finished = streaming_format_tests(idx, chunk)
             has_finish_reason = finished
-            if finished:
+            if has_finish_reason:
                 break
             complete_response += chunk
         if has_finish_reason is False:
@@ -910,7 +908,6 @@ def test_together_ai_completion_call_starcoder_bad_key():
         pass
     except:
         print(f"error occurred: {traceback.format_exc()}")
-        pass
 
 # test_together_ai_completion_call_starcoder_bad_key() 
 #### Test Function calling + streaming ####
@@ -972,7 +969,6 @@ async def ai21_async_completion_call():
         print(f"complete response: {complete_response}")
     except:
         print(f"error occurred: {traceback.format_exc()}")
-        pass
 
 # asyncio.run(ai21_async_completion_call())
 
@@ -997,7 +993,6 @@ async def completion_call():
         print(f"complete response: {complete_response}")
     except:
         print(f"error occurred: {traceback.format_exc()}")
-        pass
 
 # asyncio.run(completion_call())
 
@@ -1062,9 +1057,8 @@ def validate_final_structure(item, structure=function_calling_output_structure):
     elif isinstance(item, dict):
         if not all(k in item and validate_final_structure(item[k], v) for k, v in structure.items()):
             return Exception("Function calling final output doesn't match expected output format")
-    else:
-        if not isinstance(item, structure):
-            return Exception("Function calling final output doesn't match expected output format")
+    elif not isinstance(item, structure):
+        return Exception("Function calling final output doesn't match expected output format")
     return True
 
 
@@ -1210,7 +1204,7 @@ def validate_final_function_call_chunk_structure(data):
     return True
 
 def streaming_and_function_calling_format_tests(idx, chunk):
-    extracted_chunk = "" 
+    extracted_chunk = ""
     finished = False
     print(f"idx: {idx}")
     print(f"chunk: {chunk}")
@@ -1219,7 +1213,7 @@ def streaming_and_function_calling_format_tests(idx, chunk):
         decision = validate_first_function_call_chunk_structure(chunk)
         role = chunk["choices"][0]["delta"]["role"]
         assert role == "assistant"
-    elif idx != 0: # second chunk 
+    else:
         try:
             decision = validate_second_function_call_chunk_structure(data=chunk)
         except: # check if it's the last chunk (returns an empty delta {} )

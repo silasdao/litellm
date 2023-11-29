@@ -29,17 +29,14 @@ class BudgetManager:
             self.print_verbose(f"user dict from local: {self.user_dict}")
         elif self.client_type == "hosted":
             # Load the user_dict from hosted db
-            url = self.api_base + "/get_budget"
+            url = f"{self.api_base}/get_budget"
             headers = {'Content-Type': 'application/json'}
             data = {
                 'project_name' : self.project_name
             }
             response = requests.post(url, headers=headers, json=data)
             response = response.json()
-            if response["status"] == "error":
-                self.user_dict = {} # assume this means the user dict hasn't been stored yet
-            else:
-                self.user_dict = response["data"]
+            self.user_dict = {} if response["status"] == "error" else response["data"]
 
     def create_budget(self, total_budget: float, user: str, duration: Optional[Literal["daily", "weekly", "monthly", "yearly"]] = None, created_at: float = time.time()): 
         self.user_dict[user] = {"total_budget": total_budget}
@@ -65,8 +62,7 @@ class BudgetManager:
         prompt_tokens = litellm.token_counter(model=model, text=text)
         prompt_cost, _ = litellm.cost_per_token(model=model, prompt_tokens=prompt_tokens, completion_tokens=0)
         current_cost = self.user_dict[user].get("current_cost", 0)
-        projected_cost = prompt_cost + current_cost
-        return projected_cost
+        return prompt_cost + current_cost
     
     def get_total_budget(self, user: str):
         return self.user_dict[user]["total_budget"]
@@ -137,13 +133,13 @@ class BudgetManager:
     def save_data(self):
         if self.client_type == "local":
             import json 
-            
+
             # save the user dict 
             with open("user_cost.json", 'w') as json_file:
                 json.dump(self.user_dict, json_file, indent=4)  # Indent for pretty formatting
             return {"status": "success"}
         elif self.client_type == "hosted":
-            url = self.api_base + "/set_budget"
+            url = f"{self.api_base}/set_budget"
             headers = {'Content-Type': 'application/json'}
             data = {
                 'project_name' : self.project_name, 

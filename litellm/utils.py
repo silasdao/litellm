@@ -92,14 +92,12 @@ last_fetched_at_keys = None
 # }
 
 def _generate_id(): # private helper function
-    return 'chatcmpl-' + str(uuid.uuid4())
+    return f'chatcmpl-{str(uuid.uuid4())}'
 
 def map_finish_reason(finish_reason: str): # openai supports 5 stop sequences - 'stop', 'length', 'function_call', 'content_filter', 'null'
     # anthropic mapping
     print(f"receives finish reason: {finish_reason}")
-    if finish_reason == "stop_sequence":
-        return "stop"
-    return finish_reason
+    return "stop" if finish_reason == "stop_sequence" else finish_reason
 
 
 class Message(OpenAIObject):
@@ -126,20 +124,14 @@ class Choices(OpenAIObject):
         else:
             self.finish_reason = "stop"
         self.index = index
-        if message is None:
-            self.message = Message(content=None)
-        else:
-            self.message = message
+        self.message = Message(content=None) if message is None else message
 
 class StreamingChoices(OpenAIObject):
     def __init__(self, finish_reason=None, index=0, delta: Optional[Delta]=None, **params):
         super(StreamingChoices, self).__init__(**params)
         self.finish_reason = finish_reason
         self.index = index
-        if delta:
-            self.delta = delta
-        else:
-            self.delta = Delta()
+        self.delta = delta if delta else Delta()
 
 class ModelResponse(OpenAIObject):
     def __init__(self, id=None, choices=None, created=None, model=None, usage=None, stream=False, response_ms=None, **params):
@@ -152,18 +144,9 @@ class ModelResponse(OpenAIObject):
             else:
                 self.object = "chat.completion"
             self.choices = [Choices()]
-        if id is None:
-            self.id = _generate_id()
-        else:
-            self.id = id
-        if created is None:
-            self.created = int(time.time())
-        else:
-            self.created = created
-        if response_ms:
-            self._response_ms = response_ms
-        else:
-            self._response_ms = None
+        self.id = _generate_id() if id is None else id
+        self.created = int(time.time()) if created is None else created
+        self._response_ms = response_ms if response_ms else None
         self.model = model
         self.usage = (
             usage
@@ -184,16 +167,12 @@ class ModelResponse(OpenAIObject):
 class EmbeddingResponse(OpenAIObject):
     def __init__(self, id=None, choices=None, created=None, model=None, usage=None, stream=False, response_ms=None, **params):
         self.object = "list"
-        if response_ms:
-            self._response_ms = response_ms
-        else:
-            self._response_ms = None
+        self._response_ms = response_ms if response_ms else None
         self.data = []
         self.model = model
 
     def to_dict_recursive(self):
-        d = super().to_dict_recursive()
-        return d
+        return super().to_dict_recursive()
 
 ############################################################
 def print_verbose(print_statement):
@@ -351,7 +330,7 @@ class Logging:
                     print_verbose(
                         f"LiteLLM.LoggingError: [Non-Blocking] Exception occurred while logging {traceback.format_exc()}"
                     )
-            
+
             # Input Integration Logging -> If you want to log the fact that an attempt to call the model was made
             for callback in litellm.input_callback:
                 try:
@@ -385,13 +364,10 @@ class Logging:
             print_verbose(
                 f"LiteLLM.LoggingError: [Non-Blocking] Exception occurred while logging {traceback.format_exc()}"
             )
-            pass
 
     
     def success_handler(self, result, start_time=None, end_time=None):
-        print_verbose(
-                f"Logging Details LiteLLM-Success Call"
-            )
+        print_verbose("Logging Details LiteLLM-Success Call")
         try:
             if start_time is None:
                 start_time = self.start_time
@@ -406,24 +382,10 @@ class Logging:
 
             for callback in litellm.success_callback:
                 try:
-                    if callback == "lite_debugger":
-                        print_verbose("reaches lite_debugger for logging!")
-                        print_verbose(f"liteDebuggerClient: {liteDebuggerClient}")
-                        print_verbose(f"liteDebuggerClient details function {self.call_type} and stream set to {self.stream}")
-                        liteDebuggerClient.log_event(
-                            end_user=litellm._thread_context.user,
-                            response_obj=result,
-                            start_time=start_time,
-                            end_time=end_time,
-                            litellm_call_id=self.litellm_call_id,
-                            print_verbose=print_verbose,
-                            call_type = self.call_type, 
-                            stream = self.stream,
-                        )
                     if callback == "api_manager":
                         print_verbose("reaches api manager for updating model cost")
                         litellm.apiManager.update_cost(completion_obj=result, user=self.user)
-                    if callback == "cache":
+                    elif callback == "cache":
                         # print("entering logger first time")
                         # print(self.litellm_params["stream_response"])
                         if litellm.cache != None and self.model_call_details.get('optional_params', {}).get('stream', False) == True:
@@ -441,7 +403,21 @@ class Logging:
                                 self.litellm_params["stream_response"][litellm_call_id] = new_model_response
                             #print("adding to cache for", litellm_call_id)                              
                             litellm.cache.add_cache(self.litellm_params["stream_response"][litellm_call_id], **self.model_call_details)
-                    if callback == "promptlayer":
+                    elif callback == "lite_debugger":
+                        print_verbose("reaches lite_debugger for logging!")
+                        print_verbose(f"liteDebuggerClient: {liteDebuggerClient}")
+                        print_verbose(f"liteDebuggerClient details function {self.call_type} and stream set to {self.stream}")
+                        liteDebuggerClient.log_event(
+                            end_user=litellm._thread_context.user,
+                            response_obj=result,
+                            start_time=start_time,
+                            end_time=end_time,
+                            litellm_call_id=self.litellm_call_id,
+                            print_verbose=print_verbose,
+                            call_type = self.call_type, 
+                            stream = self.stream,
+                        )
+                    elif callback == "promptlayer":
                         print_verbose("reaches promptlayer for logging!")
                         promptLayerLogger.log_event(
                             kwargs=self.model_call_details,
@@ -464,12 +440,9 @@ class Logging:
             print_verbose(
                 f"LiteLLM.LoggingError: [Non-Blocking] Exception occurred while success logging {traceback.format_exc()}"
             )
-            pass
 
     def failure_handler(self, exception, traceback_exception, start_time=None, end_time=None):
-        print_verbose(
-                f"Logging Details LiteLLM-Failure Call"
-            )
+        print_verbose("Logging Details LiteLLM-Failure Call")
         try:
             if start_time is None:
                 start_time = self.start_time
@@ -523,7 +496,6 @@ class Logging:
             print_verbose(
                 f"LiteLLM.LoggingError: [Non-Blocking] Exception occurred while failure logging {traceback.format_exc()}"
             )
-            pass
 
 
 def exception_logging(
@@ -553,7 +525,6 @@ def exception_logging(
         print(
             f"LiteLLM.LoggingError: [Non-Blocking] Exception occurred while logging {traceback.format_exc()}"
         )
-        pass
 
 
 ####### CLIENT ###################
@@ -562,13 +533,13 @@ def client(original_function):
     global liteDebuggerClient, get_all_keys
 
     def function_setup(
-        start_time, *args, **kwargs
-    ):  # just run once to check if user wants to send their data anywhere - PostHog/Sentry/Slack/etc.
+            start_time, *args, **kwargs
+        ):  # just run once to check if user wants to send their data anywhere - PostHog/Sentry/Slack/etc.
         try:
             global callback_list, add_breadcrumb, user_logger_fn, Logging
             function_id = kwargs["id"] if "id" in kwargs else None
             if litellm.use_client or ("use_client" in kwargs and kwargs["use_client"] == True): 
-                print_verbose(f"litedebugger initialized")
+                print_verbose("litedebugger initialized")
                 if "lite_debugger" not in litellm.input_callback:
                     litellm.input_callback.append("lite_debugger")
                 if "lite_debugger" not in litellm.success_callback:
@@ -602,24 +573,23 @@ def client(original_function):
             # CRASH REPORTING TELEMETRY
             crash_reporting(*args, **kwargs)
             # INIT LOGGER - for user-specified integrations
-            model = args[0] if len(args) > 0 else kwargs["model"]
+            model = args[0] if args else kwargs["model"]
             call_type = original_function.__name__
             if call_type == CallTypes.completion.value:
                 messages = args[1] if len(args) > 1 else kwargs["messages"]
             elif call_type == CallTypes.embedding.value:
                 messages = args[1] if len(args) > 1 else kwargs["input"]
-            stream = True if "stream" in kwargs and kwargs["stream"] == True else False
+            stream = "stream" in kwargs and kwargs["stream"] == True
             logging_obj = Logging(model=model, messages=messages, stream=stream, litellm_call_id=kwargs["litellm_call_id"], function_id=function_id, call_type=call_type, start_time=start_time)
             return logging_obj
         except Exception as e:  # DO NOT BLOCK running the function because of this
             print_verbose(f"[Non-Blocking] {traceback.format_exc()}; args - {args}; kwargs - {kwargs}")
             print(e)
-        pass
-    
+
     def crash_reporting(*args, **kwargs):
         if litellm.telemetry:
             try:
-                model = args[0] if len(args) > 0 else kwargs["model"]
+                model = args[0] if args else kwargs["model"]
                 exception = kwargs["exception"] if "exception" in kwargs else None
                 custom_llm_provider = (
                     kwargs["custom_llm_provider"]
@@ -641,7 +611,7 @@ def client(original_function):
         litellm_call_id = str(uuid.uuid4())
         kwargs["litellm_call_id"] = litellm_call_id
         try:
-            model = args[0] if len(args) > 0 else kwargs["model"]
+            model = args[0] if args else kwargs["model"]
         except:
             raise ValueError("model param not passed in.")
 
@@ -662,7 +632,7 @@ def client(original_function):
             if kwargs.get("caching", False): # allow users to control returning cached responses from the completion function
                 # checking cache
                 if (litellm.cache != None or litellm.caching or litellm.caching_with_models):
-                    print_verbose(f"LiteLLM: Checking Cache")
+                    print_verbose("LiteLLM: Checking Cache")
                     cached_result = litellm.cache.get_cache(*args, **kwargs)
                     if cached_result != None:
                         return cached_result
@@ -673,12 +643,12 @@ def client(original_function):
             if "stream" in kwargs and kwargs["stream"] == True:
                 # TODO: Add to cache for streaming
                 return result
-        
+
 
             # [OPTIONAL] ADD TO CACHE
             if litellm.caching or litellm.caching_with_models or litellm.cache != None: # user init a cache object
                 litellm.cache.add_cache(result, *args, **kwargs)
-            
+
             # [OPTIONAL] Return LiteLLM call_id
             if litellm.use_client == True:
                 result['litellm_call_id'] = litellm_call_id
@@ -710,6 +680,7 @@ def client(original_function):
                 ):  # make it easy to get to the debugger logs if you've initialized it
                     e.message += f"\n Check the log in your dashboard - {liteDebuggerClient.dashboard_url}"
             raise e
+
     return wrapper
 
 
@@ -759,44 +730,41 @@ def token_counter(model="", text=None,  messages: Optional[List] = None):
     # text: raw text string passed to model
     # messages: Optional, alternative to passing in text. List of Dicts passed to completion, messages = [{"role": "user", "content": "hello"}]
     # use tiktoken or anthropic's tokenizer depending on the model
-    if text == None:
+    if text is None:
         if messages is not None:
             text = " ".join([message["content"] for message in messages])
         else:
             raise ValueError("text and messages cannot both be None")
     num_tokens = 0
 
-    if model is not None: 
-        # cohere 
-        if model in litellm.cohere_models:
-            tokenizer = Tokenizer.from_pretrained("Cohere/command-nightly")
-            enc = tokenizer.encode(text)
-            num_tokens = len(enc.ids)
-        # anthropic 
-        elif model in litellm.anthropic_models:
-            # Read the JSON file
-            filename = pkg_resources.resource_filename(__name__, 'llms/tokenizers/anthropic_tokenizer.json')
-            with open(filename, 'r') as f:
-                json_data = json.load(f)
-            # Decode the JSON data from utf-8
-            json_data_decoded = json.dumps(json_data, ensure_ascii=False)
+    if model is not None and model in litellm.cohere_models:
+        tokenizer = Tokenizer.from_pretrained("Cohere/command-nightly")
+        enc = tokenizer.encode(text)
+        return len(enc.ids)
+    elif model is not None and model in litellm.anthropic_models:
+        # Read the JSON file
+        filename = pkg_resources.resource_filename(__name__, 'llms/tokenizers/anthropic_tokenizer.json')
+        with open(filename, 'r') as f:
+            json_data = json.load(f)
+        # Decode the JSON data from utf-8
+        json_data_decoded = json.dumps(json_data, ensure_ascii=False)
             # Convert to str
-            json_str = str(json_data_decoded)
-            # load tokenizer
-            tokenizer = Tokenizer.from_str(json_str)
-            enc = tokenizer.encode(text)
-            num_tokens = len(enc.ids)
-        # llama2 
-        elif "llama-2" in model.lower(): 
-            tokenizer = Tokenizer.from_pretrained("hf-internal-testing/llama-tokenizer")
-            enc = tokenizer.encode(text)
-            num_tokens = len(enc.ids)
-        # default - tiktoken
-        else: 
-            num_tokens = len(encoding.encode(text))
-    else:
-        num_tokens = len(encoding.encode(text))
-    return num_tokens
+        json_str = json_data_decoded
+        # load tokenizer
+        tokenizer = Tokenizer.from_str(json_str)
+        enc = tokenizer.encode(text)
+        return len(enc.ids)
+    elif (
+        model is not None
+        and model not in litellm.cohere_models
+        and model not in litellm.anthropic_models
+        and "llama-2" in model.lower()
+    ): 
+        tokenizer = Tokenizer.from_pretrained("hf-internal-testing/llama-tokenizer")
+        enc = tokenizer.encode(text)
+        return len(enc.ids)
+    else: 
+        return len(encoding.encode(text))
 
 
 def cost_per_token(model="gpt-3.5-turbo", prompt_tokens=0, completion_tokens=0):
@@ -811,7 +779,6 @@ def cost_per_token(model="gpt-3.5-turbo", prompt_tokens=0, completion_tokens=0):
         completion_tokens_cost_usd_dollar = (
             model_cost_ref[model]["output_cost_per_token"] * completion_tokens
         )
-        return prompt_tokens_cost_usd_dollar, completion_tokens_cost_usd_dollar
     else:
         # calculate average input cost
         input_cost_sum = 0
@@ -824,7 +791,8 @@ def cost_per_token(model="gpt-3.5-turbo", prompt_tokens=0, completion_tokens=0):
         avg_output_cost = output_cost_sum / len(model_cost_ref.keys())
         prompt_tokens_cost_usd_dollar = avg_input_cost * prompt_tokens
         completion_tokens_cost_usd_dollar = avg_output_cost * completion_tokens
-        return prompt_tokens_cost_usd_dollar, completion_tokens_cost_usd_dollar
+
+    return prompt_tokens_cost_usd_dollar, completion_tokens_cost_usd_dollar
 
 
 def completion_cost(
@@ -863,15 +831,15 @@ def completion_cost(
         # Handle Inputs to completion_cost
         prompt_tokens = 0
         completion_tokens = 0
-        if completion_response != None:
+        if completion_response is None:
+            prompt_tokens = token_counter(model=model, text=prompt)
+            completion_tokens = token_counter(model=model, text=completion)
+
+        else:
             # get input/output tokens from completion_response
             prompt_tokens = completion_response['usage']['prompt_tokens']
             completion_tokens = completion_response['usage']['completion_tokens']
             model = completion_response['model'] # get model from completion_response
-        else:
-            prompt_tokens = token_counter(model=model, text=prompt)
-            completion_tokens = token_counter(model=model, text=completion)
-        
         # Calculate cost based on prompt_tokens, completion_tokens
         if "togethercomputer" in model:
             # together ai prices based on size of llm
@@ -909,7 +877,7 @@ def get_litellm_params(
     completion_call_id=None,
     metadata=None
 ):
-    litellm_params = {
+    return {
         "return_async": return_async,
         "api_key": api_key,
         "force_timeout": force_timeout,
@@ -921,10 +889,8 @@ def get_litellm_params(
         "model_alias_map": model_alias_map,
         "completion_call_id": completion_call_id,
         "metadata": metadata,
-        "stream_response": {} # litellm_call_id: ModelResponse Dict
+        "stream_response": {},  # litellm_call_id: ModelResponse Dict
     }
-
-    return litellm_params
 
 
 def get_optional_params(  # use the openai defaults
@@ -970,10 +936,14 @@ def get_optional_params(  # use the openai defaults
     }
     # filter out those parameters that were passed with non-default values
     non_default_params = {k: v for k, v in passed_params.items() if (k != "model" and k != "custom_llm_provider" and k in default_params and v != default_params[k])}
-    
+
     ## raise exception if function calling passed in for a provider that doesn't support it
     if "functions" in non_default_params or "function_call" in non_default_params:
-        if custom_llm_provider != "openai" and custom_llm_provider != "text-completion-openai" and custom_llm_provider != "azure": 
+        if custom_llm_provider not in [
+            "openai",
+            "text-completion-openai",
+            "azure",
+        ]: 
             raise ValueError("LiteLLM.Exception: Function calling is not supported by this provider")
 
     def _check_valid_arg(supported_params): 
@@ -981,11 +951,9 @@ def get_optional_params(  # use the openai defaults
         print_verbose(f"params passed in {passed_params}")
         print_verbose(f"non-default params passed in {non_default_params}")
         unsupported_params = []
-        for k in non_default_params.keys():
+        for k in non_default_params:
             if k not in supported_params:
-                if k == "n" and n == 1: # langchain sends n=1 as a default value
-                    pass
-                else: 
+                if k != "n" or n != 1:
                     unsupported_params.append(k)
         if unsupported_params and not litellm.drop_params:
             raise ValueError("LiteLLM.Exception: Unsupported parameters passed: {}".format(', '.join(unsupported_params)))
@@ -1034,7 +1002,7 @@ def get_optional_params(  # use the openai defaults
         ## check if unsupported param passed in 
         supported_params = ["stream", "temperature", "max_tokens", "top_p", "stop", "seed"]
         _check_valid_arg(supported_params=supported_params)
-        
+
         if stream:
             optional_params["stream"] = stream
             return optional_params
@@ -1055,7 +1023,7 @@ def get_optional_params(  # use the openai defaults
         ## check if unsupported param passed in 
         supported_params = ["stream", "temperature", "max_tokens", "top_p", "stop", "n"]
         _check_valid_arg(supported_params=supported_params)
-        
+
         if temperature:
             optional_params["temperature"] = temperature
         if top_p:
@@ -1077,7 +1045,7 @@ def get_optional_params(  # use the openai defaults
         ## check if unsupported param passed in 
         supported_params = ["stream", "temperature", "max_tokens", "top_p", "stop", "frequency_penalty"]
         _check_valid_arg(supported_params=supported_params)
-        
+
         if stream:
             optional_params["stream_tokens"] = stream
         if temperature:
@@ -1089,7 +1057,7 @@ def get_optional_params(  # use the openai defaults
         if frequency_penalty:
             optional_params["repetition_penalty"] = frequency_penalty # https://docs.together.ai/reference/inference
         if stop:
-            optional_params["stop"] = stop 
+            optional_params["stop"] = stop
     elif custom_llm_provider == "ai21":
         ## check if unsupported param passed in 
         supported_params = ["stream", "n", "temperature", "max_tokens", "top_p", "stop", "frequency_penalty", "presence_penalty"]
@@ -1115,7 +1083,7 @@ def get_optional_params(  # use the openai defaults
         ## check if unsupported param passed in 
         supported_params = ["temperature", "top_p", "stream", "n", "stop", "max_tokens"]
         _check_valid_arg(supported_params=supported_params)
-        
+
         if temperature:
             optional_params["temperature"] = temperature
         if top_p:
@@ -1134,7 +1102,7 @@ def get_optional_params(  # use the openai defaults
         ## check if unsupported param passed in 
         supported_params = ["temperature", "top_p", "max_tokens", "stream"]
         _check_valid_arg(supported_params=supported_params)
-        
+
         if temperature:
             optional_params["temperature"] = temperature
         if top_p:
@@ -1155,7 +1123,7 @@ def get_optional_params(  # use the openai defaults
             ## check if unsupported param passed in 
             supported_params = ["temperature", "max_tokens", "stream"]
             _check_valid_arg(supported_params=supported_params)
-            
+
             if max_tokens:
                 optional_params["max_new_tokens"] = max_tokens
             if temperature:
@@ -1189,10 +1157,7 @@ def get_optional_params(  # use the openai defaults
             _check_valid_arg(supported_params=supported_params)
             # anthropic params on bedrock
             # \"max_tokens_to_sample\":300,\"temperature\":0.5,\"top_p\":1,\"stop_sequences\":[\"\\\\n\\\\nHuman:\"]}"
-            if max_tokens:
-                optional_params["max_tokens_to_sample"] = max_tokens
-            else:
-                optional_params["max_tokens_to_sample"] = 256 # anthropic fails without max_tokens_to_sample
+            optional_params["max_tokens_to_sample"] = max_tokens if max_tokens else 256
             if temperature:
                 optional_params["temperature"] = temperature
             if top_p:
@@ -1270,8 +1235,8 @@ def get_optional_params(  # use the openai defaults
         supported_params = ["functions", "function_call", "temperature", "top_p", "n", "stream", "stop", "max_tokens", "presence_penalty", "frequency_penalty", "logit_bias", "user", "deployment_id"]
         _check_valid_arg(supported_params=supported_params)
         optional_params = non_default_params
-    # if user passed in non-default kwargs for specific providers/models, pass them along 
-    for k in passed_params.keys(): 
+    # if user passed in non-default kwargs for specific providers/models, pass them along
+    for k in passed_params: 
         if k not in default_params.keys(): 
             optional_params[k] = passed_params[k]
     return optional_params
@@ -1340,70 +1305,61 @@ def get_llm_provider(model: str, custom_llm_provider: Optional[str] = None):
 
 def get_api_key(llm_provider: str, dynamic_api_key: Optional[str]):
     api_key = (dynamic_api_key or litellm.api_key)
-    # openai 
-    if llm_provider == "openai" or llm_provider == "text-completion-openai":
+    # openai
+    if llm_provider in {"openai", "text-completion-openai"}:
         api_key = (
                 api_key or
                 litellm.openai_key or
                 get_secret("OPENAI_API_KEY")
             )
-    # anthropic 
     elif llm_provider == "anthropic":
         api_key = (
                 api_key or
                 litellm.anthropic_key or
                 get_secret("ANTHROPIC_API_KEY")
             )
-    # ai21 
     elif llm_provider == "ai21":
         api_key = (
                 api_key or
                 litellm.ai21_key or
                 get_secret("AI211_API_KEY")
         )
-    # aleph_alpha 
     elif llm_provider == "aleph_alpha":
         api_key = (
                 api_key or
                 litellm.aleph_alpha_key or
                 get_secret("ALEPH_ALPHA_API_KEY")
         )
-    # baseten 
     elif llm_provider == "baseten":
         api_key = (
                 api_key or
                 litellm.baseten_key or
                 get_secret("BASETEN_API_KEY")
         )
-    # cohere 
     elif llm_provider == "cohere":
         api_key = (
                 api_key or
                 litellm.cohere_key or
                 get_secret("COHERE_API_KEY")
         )
-    # huggingface 
     elif llm_provider == "huggingface":
         api_key = (
                 api_key or
                 litellm.huggingface_key or
                 get_secret("HUGGINGFACE_API_KEY")
         )
-    # nlp_cloud 
     elif llm_provider == "nlp_cloud":
         api_key = (
                 api_key or
                 litellm.nlp_cloud_key or
                 get_secret("NLP_CLOUD_API_KEY")
         )
-    # replicate 
     elif llm_provider == "replicate":
         api_key = (
                 api_key or
                 litellm.replicate_key or
                 get_secret("REPLICATE_API_KEY")
         )
-    # together_ai 
     elif llm_provider == "together_ai":
         api_key = (
                 api_key or
@@ -1427,12 +1383,8 @@ def load_test_model(
     num_calls: int = 0,
     force_timeout: int = 0,
 ):
-    test_prompt = "Hey, how's it going"
-    test_calls = 100
-    if prompt:
-        test_prompt = prompt
-    if num_calls:
-        test_calls = num_calls
+    test_prompt = prompt if prompt else "Hey, how's it going"
+    test_calls = num_calls if num_calls else 100
     messages = [[{"role": "user", "content": test_prompt}] for _ in range(test_calls)]
     start_time = time.time()
     try:
@@ -1466,7 +1418,7 @@ def validate_environment(model: Optional[str]=None) -> dict:
     missing_keys: List[str] = []
 
     if model is None:
-        return {"keys_in_environment": keys_in_environment, "missing_keys": missing_keys} 
+        return {"keys_in_environment": keys_in_environment, "missing_keys": missing_keys}
     ## EXTRACT LLM PROVIDER - if model name provided
     custom_llm_provider = None
     # check if llm provider part of model name
@@ -1474,13 +1426,23 @@ def validate_environment(model: Optional[str]=None) -> dict:
         custom_llm_provider = model.split("/", 1)[0]
         model = model.split("/", 1)[1]
         custom_llm_provider_passed_in = True
-    
+
     if custom_llm_provider:
-        if custom_llm_provider == "openai":
-            if "OPENAI_API_KEY" in os.environ:
+        if custom_llm_provider == "ai21":
+            if "AI21_API_KEY" in os.environ:
                 keys_in_environment = True
             else:
-                missing_keys.append("OPENAI_API_KEY")
+                missing_keys.append("AI21_API_KEY")
+        elif custom_llm_provider == "aleph_alpha":
+            if "ALEPH_ALPHA_API_KEY" in os.environ:
+                keys_in_environment = True
+            else:
+                missing_keys.append("ALEPH_ALPHA_API_KEY")
+        elif custom_llm_provider == "anthropic":
+            if "ANTHROPIC_API_KEY" in os.environ:
+                keys_in_environment = True
+            else:
+                missing_keys.append("ANTHROPIC_API_KEY")
         elif custom_llm_provider == "azure":
             if ("AZURE_API_BASE" in os.environ 
                 and "AZURE_API_VERSION" in os.environ
@@ -1488,136 +1450,113 @@ def validate_environment(model: Optional[str]=None) -> dict:
                 keys_in_environment = True
             else:
                 missing_keys.extend(["AZURE_API_BASE", "AZURE_API_VERSION", "AZURE_API_KEY"])
-        elif custom_llm_provider == "anthropic":
-            if "ANTHROPIC_API_KEY" in os.environ:
+        elif custom_llm_provider == "baseten":
+            if "BASETEN_API_KEY" in os.environ:
                 keys_in_environment = True
             else:
-                missing_keys.append("ANTHROPIC_API_KEY")
+                missing_keys.append("BASETEN_API_KEY")
         elif custom_llm_provider == "cohere":
             if "COHERE_API_KEY" in os.environ:
                 keys_in_environment = True
             else:
                 missing_keys.append("COHERE_API_KEY")
-        elif custom_llm_provider == "replicate":
-            if "REPLICATE_API_KEY" in os.environ:
+        elif custom_llm_provider == "huggingface":
+            if "HUGGINGFACE_API_KEY" in os.environ:
                 keys_in_environment = True
             else:
-                missing_keys.append("REPLICATE_API_KEY")
+                missing_keys.append("HUGGINGFACE_API_KEY")
+        elif custom_llm_provider == "nlp_cloud":
+            if "NLP_CLOUD_API_KEY" in os.environ:
+                keys_in_environment = True
+            else:
+                missing_keys.append("NLP_CLOUD_API_KEY")
+        elif custom_llm_provider == "openai":
+            if "OPENAI_API_KEY" in os.environ:
+                keys_in_environment = True
+            else:
+                missing_keys.append("OPENAI_API_KEY")
         elif custom_llm_provider == "openrouter":
             if "OPENROUTER_API_KEY" in os.environ:
                 keys_in_environment = True
             else:
                 missing_keys.append("OPENROUTER_API_KEY")
+        elif custom_llm_provider == "replicate":
+            if "REPLICATE_API_KEY" in os.environ:
+                keys_in_environment = True
+            else:
+                missing_keys.append("REPLICATE_API_KEY")
+        elif custom_llm_provider == "together_ai":
+            if "TOGETHERAI_API_KEY" in os.environ:
+                keys_in_environment = True
+            else:
+                missing_keys.append("TOGETHERAI_API_KEY")
         elif custom_llm_provider == "vertex_ai":
             if ("VERTEXAI_PROJECT" in os.environ 
                 and "VERTEXAI_LOCATION" in os.environ):
                 keys_in_environment = True
             else:
                 missing_keys.extend(["VERTEXAI_PROJECT", "VERTEXAI_PROJECT"])
-        elif custom_llm_provider == "huggingface":
-            if "HUGGINGFACE_API_KEY" in os.environ:
-                keys_in_environment = True
-            else:
-                missing_keys.append("HUGGINGFACE_API_KEY")
-        elif custom_llm_provider == "ai21":
-            if "AI21_API_KEY" in os.environ:
-                keys_in_environment = True
-            else:
-                missing_keys.append("AI21_API_KEY")
-        elif custom_llm_provider == "together_ai":
-            if "TOGETHERAI_API_KEY" in os.environ:
-                keys_in_environment = True
-            else:
-                missing_keys.append("TOGETHERAI_API_KEY")
-        elif custom_llm_provider == "aleph_alpha":
-            if "ALEPH_ALPHA_API_KEY" in os.environ:
-                keys_in_environment = True
-            else:
-                missing_keys.append("ALEPH_ALPHA_API_KEY")
-        elif custom_llm_provider == "baseten":
-            if "BASETEN_API_KEY" in os.environ:
-                keys_in_environment = True
-            else:
-                missing_keys.append("BASETEN_API_KEY")
-        elif custom_llm_provider == "nlp_cloud":
-            if "NLP_CLOUD_API_KEY" in os.environ:
-                keys_in_environment = True
-            else:
-                missing_keys.append("NLP_CLOUD_API_KEY")
-    else:
-        ## openai - chatcompletion + text completion
-        if model in litellm.open_ai_chat_completion_models or litellm.open_ai_text_completion_models:
-            if "OPENAI_API_KEY" in os.environ:
-                keys_in_environment = True
-            else:
-                missing_keys.append("OPENAI_API_KEY")
-        ## anthropic 
-        elif model in litellm.anthropic_models:
-            if "ANTHROPIC_API_KEY" in os.environ:
-                keys_in_environment = True
-            else:
-                missing_keys.append("ANTHROPIC_API_KEY")
-        ## cohere
-        elif model in litellm.cohere_models:
-            if "COHERE_API_KEY" in os.environ:
-                keys_in_environment = True
-            else:
-                missing_keys.append("COHERE_API_KEY")
-        ## replicate
-        elif model in litellm.replicate_models:
-            if "REPLICATE_API_KEY" in os.environ:
-                keys_in_environment = True
-            else:
-                missing_keys.append("REPLICATE_API_KEY")
-        ## openrouter
-        elif model in litellm.openrouter_models:
-            if "OPENROUTER_API_KEY" in os.environ:
-                keys_in_environment = True
-            else:
-                missing_keys.append("OPENROUTER_API_KEY")
-        ## vertex - text + chat models
-        elif model in litellm.vertex_chat_models or model in litellm.vertex_text_models:
-            if ("VERTEXAI_PROJECT" in os.environ 
-                and "VERTEXAI_LOCATION" in os.environ):
-                keys_in_environment = True
-            else:
-                missing_keys.extend(["VERTEXAI_PROJECT", "VERTEXAI_PROJECT"])
-        ## huggingface 
-        elif model in litellm.huggingface_models:
-            if "HUGGINGFACE_API_KEY" in os.environ:
-                keys_in_environment = True
-            else:
-                missing_keys.append("HUGGINGFACE_API_KEY")
-        ## ai21 
-        elif model in litellm.ai21_models:
-            if "AI21_API_KEY" in os.environ:
-                keys_in_environment = True
-            else:
-                missing_keys.append("AI21_API_KEY")
-        ## together_ai 
-        elif model in litellm.together_ai_models:
-            if "TOGETHERAI_API_KEY" in os.environ:
-                keys_in_environment = True
-            else:
-                missing_keys.append("TOGETHERAI_API_KEY")
-        ## aleph_alpha 
-        elif model in litellm.aleph_alpha_models:
-            if "ALEPH_ALPHA_API_KEY" in os.environ:
-                keys_in_environment = True
-            else:
-                missing_keys.append("ALEPH_ALPHA_API_KEY")
-        ## baseten 
-        elif model in litellm.baseten_models:
-            if "BASETEN_API_KEY" in os.environ:
-                keys_in_environment = True
-            else:
-                missing_keys.append("BASETEN_API_KEY")
-        ## nlp_cloud
-        elif model in litellm.nlp_cloud_models:
-            if "NLP_CLOUD_API_KEY" in os.environ:
-                keys_in_environment = True
-            else:
-                missing_keys.append("NLP_CLOUD_API_KEY")
+    elif model in litellm.open_ai_chat_completion_models or litellm.open_ai_text_completion_models:
+        if "OPENAI_API_KEY" in os.environ:
+            keys_in_environment = True
+        else:
+            missing_keys.append("OPENAI_API_KEY")
+    elif model in litellm.anthropic_models:
+        if "ANTHROPIC_API_KEY" in os.environ:
+            keys_in_environment = True
+        else:
+            missing_keys.append("ANTHROPIC_API_KEY")
+    elif model in litellm.cohere_models:
+        if "COHERE_API_KEY" in os.environ:
+            keys_in_environment = True
+        else:
+            missing_keys.append("COHERE_API_KEY")
+    elif model in litellm.replicate_models:
+        if "REPLICATE_API_KEY" in os.environ:
+            keys_in_environment = True
+        else:
+            missing_keys.append("REPLICATE_API_KEY")
+    elif model in litellm.openrouter_models:
+        if "OPENROUTER_API_KEY" in os.environ:
+            keys_in_environment = True
+        else:
+            missing_keys.append("OPENROUTER_API_KEY")
+    elif model in litellm.vertex_chat_models or model in litellm.vertex_text_models:
+        if ("VERTEXAI_PROJECT" in os.environ 
+            and "VERTEXAI_LOCATION" in os.environ):
+            keys_in_environment = True
+        else:
+            missing_keys.extend(["VERTEXAI_PROJECT", "VERTEXAI_PROJECT"])
+    elif model in litellm.huggingface_models:
+        if "HUGGINGFACE_API_KEY" in os.environ:
+            keys_in_environment = True
+        else:
+            missing_keys.append("HUGGINGFACE_API_KEY")
+    elif model in litellm.ai21_models:
+        if "AI21_API_KEY" in os.environ:
+            keys_in_environment = True
+        else:
+            missing_keys.append("AI21_API_KEY")
+    elif model in litellm.together_ai_models:
+        if "TOGETHERAI_API_KEY" in os.environ:
+            keys_in_environment = True
+        else:
+            missing_keys.append("TOGETHERAI_API_KEY")
+    elif model in litellm.aleph_alpha_models:
+        if "ALEPH_ALPHA_API_KEY" in os.environ:
+            keys_in_environment = True
+        else:
+            missing_keys.append("ALEPH_ALPHA_API_KEY")
+    elif model in litellm.baseten_models:
+        if "BASETEN_API_KEY" in os.environ:
+            keys_in_environment = True
+        else:
+            missing_keys.append("BASETEN_API_KEY")
+    elif model in litellm.nlp_cloud_models:
+        if "NLP_CLOUD_API_KEY" in os.environ:
+            keys_in_environment = True
+        else:
+            missing_keys.append("NLP_CLOUD_API_KEY")
     return {"keys_in_environment": keys_in_environment, "missing_keys": missing_keys} 
 
 def set_callbacks(callback_list, function_id=None):
@@ -1635,11 +1574,7 @@ def set_callbacks(callback_list, function_id=None):
                     )
                     import sentry_sdk
                 sentry_sdk_instance = sentry_sdk
-                sentry_trace_rate = (
-                    os.environ.get("SENTRY_API_TRACE_RATE")
-                    if "SENTRY_API_TRACE_RATE" in os.environ
-                    else "1.0"
-                )
+                sentry_trace_rate = os.environ.get("SENTRY_API_TRACE_RATE", "1.0")
                 sentry_sdk_instance.init(
                     dsn=os.environ.get("SENTRY_API_URL"),
                     traces_sample_rate=float(sentry_trace_rate),
@@ -1689,10 +1624,10 @@ def set_callbacks(callback_list, function_id=None):
             elif callback == "berrispend":
                 berrispendLogger = BerriSpendLogger()
             elif callback == "supabase":
-                print_verbose(f"instantiating supabase")
+                print_verbose("instantiating supabase")
                 supabaseClient = Supabase()
             elif callback == "lite_debugger":
-                print_verbose(f"instantiating lite_debugger")
+                print_verbose("instantiating lite_debugger")
                 if function_id:
                     liteDebuggerClient = LiteDebugger(email=function_id)
                 elif litellm.token:
@@ -1747,7 +1682,7 @@ def handle_failure(exception, traceback_exception, start_time, end_time, args, k
                         ph_obj = kwargs
                     if len(args) > 0:
                         for i, arg in enumerate(args):
-                            ph_obj["litellm_args_" + str(i)] = arg
+                            ph_obj[f"litellm_args_{str(i)}"] = arg
                     for detail in additional_details:
                         ph_obj[detail] = additional_details[detail]
                     event_name = additional_details["Event_Name"]
@@ -1760,7 +1695,7 @@ def handle_failure(exception, traceback_exception, start_time, end_time, args, k
                     else:  # PostHog calls require a unique id to identify a user - https://posthog.com/docs/libraries/python
                         unique_id = str(uuid.uuid4())
                         posthog.capture(unique_id, event_name)
-                        print_verbose(f"successfully logged to PostHog!")
+                        print_verbose("successfully logged to PostHog!")
                 elif callback == "berrispend":
                     print_verbose("reaches berrispend for logging!")
                     model = args[0] if len(args) > 0 else kwargs["model"]
@@ -1860,19 +1795,15 @@ def handle_failure(exception, traceback_exception, start_time, end_time, args, k
                 print_verbose(
                     f"Error Occurred while logging failure: {traceback.format_exc()}"
                 )
-                pass
-
         if failure_handler and callable(failure_handler):
             call_details = {
                 "exception": exception,
                 "additional_details": additional_details,
             }
             failure_handler(call_details)
-        pass
     except Exception as e:
         # LOGGING
         exception_logging(logger_fn=user_logger_fn, exception=e)
-        pass
 
 
 def handle_success(args, kwargs, result, start_time, end_time):

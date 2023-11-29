@@ -37,15 +37,12 @@ def get_models(url):
     return models
 
 def get_cleaned_models(models):
-    """
+  """
         Function to clean retrieved models
         :param models: list of retrieved models
         :return: list of cleaned models
     """
-    cleaned_models = []
-    for model in models:
-        cleaned_models.append(model["id"])
-    return cleaned_models
+  return [model["id"] for model in models]
 
 # Get text-generation models
 url = 'https://huggingface.co/api/models?filter=text-generation-inference'

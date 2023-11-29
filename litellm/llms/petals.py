@@ -44,20 +44,7 @@ def completion(
     tokenizer = AutoTokenizer.from_pretrained(model, use_fast=False, add_bos_token=False)
     model_obj = AutoDistributedModelForCausalLM.from_pretrained(model)
 
-    prompt = ""
-    for message in messages:
-        if "role" in message:
-            if message["role"] == "user":
-                prompt += (
-                    f"{message['content']}"
-                )
-            else:
-                prompt += (
-                    f"{message['content']}"
-                )
-        else:
-            prompt += f"{message['content']}"
-    
+    prompt = "".join(f"{message['content']}" for message in messages)
     ## Load Config
     for k, v in PetalsConfig.items(): 
         if k not in optional_params: 
@@ -69,10 +56,10 @@ def completion(
             api_key="",
             additional_args={"complete_input_dict": optional_params},
         )
-    
+
     ## COMPLETION CALL
     inputs = tokenizer(prompt, return_tensors="pt")["input_ids"]
-    
+
     # optional params: max_new_tokens=1,temperature=0.9, top_p=0.6
     outputs = model_obj.generate(inputs, **optional_params)
 
@@ -89,7 +76,7 @@ def completion(
 
     prompt_tokens = len(
         encoding.encode(prompt)
-    ) 
+    )
     completion_tokens = len(
         encoding.encode(model_response["choices"][0]["message"]["content"])
     )
